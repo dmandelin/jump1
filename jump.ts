@@ -31,11 +31,11 @@ class Game {
     }
 
     update() {
-        if (this.controller.L) {
-            if (!this.controller.R) {
+        if (this.controller.isDown(Button.Left)) {
+            if (!this.controller.isDown(Button.Right)) {
                 this.playerSprite.accelerate(-1);
             }
-        } else if (this.controller.R) {
+        } else if (this.controller.isDown(Button.Right)) {
             this.playerSprite.accelerate(+1);
         } else {
             this.playerSprite.decelerate();
@@ -55,35 +55,35 @@ class Game {
     }
 }
 
-class Controller {
-    private L_: boolean = false;
-    private R_: boolean = false;
+enum Button {
+    Left,
+    Right,
+    Space,
+    Count,
+}
 
-    get L(): boolean { return this.L_; }
-    get R(): boolean { return this.R_; }
-   
+const bindings = {
+    'ArrowLeft': Button.Left,
+    'ArrowRight': Button.Right,
+    ' ': Button.Space,
+}
+
+class Controller {
+    private buttons = new Array(Button.Count).fill(false);
+
+    isDown(b: Button): false {
+        return this.buttons[b];
+    }
+
     constructor() {
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowLeft') {
-                this.L_ = true;
-            }
+            const button = bindings[event.key];
+            if (button !== undefined) this.buttons[button] = true;
         });
         document.addEventListener('keyup', (event) => {
-            if (event.key === 'ArrowLeft') {
-                this.L_ = false;
-            }
+            const button = bindings[event.key];
+            if (button !== undefined) this.buttons[button] = false;
         });
-        
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowRight') {
-                this.R_ = true;
-            }
-        });
-        document.addEventListener('keyup', (event) => {
-            if (event.key === 'ArrowRight') {
-                this.R_ = false;
-            }
-        });   
     }
 }
 
@@ -106,7 +106,6 @@ class Sprite {
     move(x: number, y: number) {
         this.x += x;
         this.y += y;
-        console.log(`ps ${this.x}, ${this.y}`);
     }
 
     accelerate(direction: 1|-1) {

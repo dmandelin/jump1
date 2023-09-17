@@ -1,8 +1,8 @@
-var Game = /** @class */ (function () {
-    function Game() {
+class Game {
+    constructor() {
         this.controller = new Controller();
         this.ticker = this.tick.bind(this);
-        var canvas = document.getElementById("myCanvas");
+        const canvas = document.getElementById("myCanvas");
         canvas.width = this.w = window.innerWidth * 0.8;
         canvas.height = this.h = window.innerHeight * 0.8;
         this.ctx = canvas.getContext("2d");
@@ -10,78 +10,69 @@ var Game = /** @class */ (function () {
         this.playerSprite.xmin = 0;
         this.playerSprite.xmax = this.w - 50;
     }
-    Game.prototype.run = function () {
+    run() {
         this.tick();
-    };
-    Game.prototype.tick = function () {
+    }
+    tick() {
         this.update();
         this.draw();
         requestAnimationFrame(this.ticker);
-    };
-    Game.prototype.update = function () {
-        if (this.controller.L) {
-            if (!this.controller.R) {
+    }
+    update() {
+        if (this.controller.isDown(Button.Left)) {
+            if (!this.controller.isDown(Button.Right)) {
                 this.playerSprite.accelerate(-1);
             }
         }
-        else if (this.controller.R) {
+        else if (this.controller.isDown(Button.Right)) {
             this.playerSprite.accelerate(+1);
         }
         else {
             this.playerSprite.decelerate();
         }
         this.playerSprite.update();
-    };
-    Game.prototype.draw = function () {
+    }
+    draw() {
         this.drawBackground();
         this.playerSprite.draw(this.ctx);
-    };
-    Game.prototype.drawBackground = function () {
+    }
+    drawBackground() {
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0, 0, this.w, this.h);
-    };
-    return Game;
-}());
-var Controller = /** @class */ (function () {
-    function Controller() {
-        var _this = this;
-        this.L_ = false;
-        this.R_ = false;
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowLeft') {
-                _this.L_ = true;
-            }
+    }
+}
+var Button;
+(function (Button) {
+    Button[Button["Left"] = 0] = "Left";
+    Button[Button["Right"] = 1] = "Right";
+    Button[Button["Space"] = 2] = "Space";
+    Button[Button["Count"] = 3] = "Count";
+})(Button || (Button = {}));
+const bindings = {
+    'ArrowLeft': Button.Left,
+    'ArrowRight': Button.Right,
+    ' ': Button.Space,
+};
+class Controller {
+    isDown(b) {
+        return this.buttons[b];
+    }
+    constructor() {
+        this.buttons = new Array(Button.Count).fill(false);
+        document.addEventListener('keydown', (event) => {
+            const button = bindings[event.key];
+            if (button !== undefined)
+                this.buttons[button] = true;
         });
-        document.addEventListener('keyup', function (event) {
-            if (event.key === 'ArrowLeft') {
-                _this.L_ = false;
-            }
-        });
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowRight') {
-                _this.R_ = true;
-            }
-        });
-        document.addEventListener('keyup', function (event) {
-            if (event.key === 'ArrowRight') {
-                _this.R_ = false;
-            }
+        document.addEventListener('keyup', (event) => {
+            const button = bindings[event.key];
+            if (button !== undefined)
+                this.buttons[button] = false;
         });
     }
-    Object.defineProperty(Controller.prototype, "L", {
-        get: function () { return this.L_; },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Controller.prototype, "R", {
-        get: function () { return this.R_; },
-        enumerable: false,
-        configurable: true
-    });
-    return Controller;
-}());
-var Sprite = /** @class */ (function () {
-    function Sprite(x, y) {
+}
+class Sprite {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
         this.sz = 50;
@@ -93,20 +84,19 @@ var Sprite = /** @class */ (function () {
         this.xmin = 0;
         this.xmax = 500;
     }
-    Sprite.prototype.move = function (x, y) {
+    move(x, y) {
         this.x += x;
         this.y += y;
-        console.log("ps ".concat(this.x, ", ").concat(this.y));
-    };
-    Sprite.prototype.accelerate = function (direction) {
+    }
+    accelerate(direction) {
         this.vx += this.axUp * direction;
         this.vx = clampAbs(this.vx, this.vxMax);
-    };
-    Sprite.prototype.decelerate = function () {
+    }
+    decelerate() {
         this.vx -= Math.sign(this.vx) * this.axDown;
         this.vx = clampAbs(this.vx, this.vxMax);
-    };
-    Sprite.prototype.update = function () {
+    }
+    update() {
         this.x += this.vx;
         this.y += this.vy;
         if (this.x < this.xmin) {
@@ -117,13 +107,12 @@ var Sprite = /** @class */ (function () {
             this.x = this.xmax;
             this.vx = -0.8 * this.vx;
         }
-    };
-    Sprite.prototype.draw = function (ctx) {
+    }
+    draw(ctx) {
         ctx.fillStyle = 'blue';
         ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
-    };
-    return Sprite;
-}());
+    }
+}
 document.addEventListener("DOMContentLoaded", function () {
     new Game().run();
 });
