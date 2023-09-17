@@ -18,6 +18,8 @@ class Game {
         this.playerSprite = new Sprite(canvas.width / 2, canvas.height - 80);
         this.playerSprite.xmin = 0;
         this.playerSprite.xmax = this.w - 50;
+        this.playerSprite.ymax = this.h;
+        this.playerSprite.place();
     }
 
     run() {
@@ -33,12 +35,16 @@ class Game {
     update() {
         if (this.controller.isDown(Button.Left)) {
             if (!this.controller.isDown(Button.Right)) {
-                this.playerSprite.accelerate(-1);
+                this.playerSprite.accelerateX(-1);
             }
         } else if (this.controller.isDown(Button.Right)) {
-            this.playerSprite.accelerate(+1);
+            this.playerSprite.accelerateX(+1);
         } else {
-            this.playerSprite.decelerate();
+            this.playerSprite.decelerateX();
+        }
+
+        if (this.controller.isDown(Button.Space)) {
+            this.playerSprite.accelerateForJump();
         }
 
         this.playerSprite.update();
@@ -92,15 +98,31 @@ class Sprite {
 
     private vx = 0;
     private vy = 0;
+    private jumpFrames = 0;
 
     private vxMax = 10;
     private axUp = 0.8;
     private axDown = 0.4;
+    
+    private ayJump = 3;
+    private vyJumpMax = 20;
+    private maxJumpFrames = 8;
+
+    private ayFall = 1;
 
     xmin = 0;
     xmax = 500;
+    ymax = 500;
 
     constructor(private x: number, private y: number) {
+    }
+
+    isGrounded(): boolean {
+        return this.y === this.ymax;
+    }
+
+    place() {
+        this.y = this.ymax;
     }
 
     move(x: number, y: number) {
@@ -108,17 +130,33 @@ class Sprite {
         this.y += y;
     }
 
-    accelerate(direction: 1|-1) {
+    accelerateX(direction: 1|-1) {
         this.vx += this.axUp * direction;
         this.vx = clampAbs(this.vx, this.vxMax);
     }
 
-    decelerate() {
+    decelerateX() {
         this.vx -= Math.sign(this.vx) * this.axDown;
         this.vx = clampAbs(this.vx, this.vxMax);
     }
+
+    accelerateForJump() {
+        if (this.isGrounded() || this.jumpFrames < this.maxJumpFrames) {
+            this.doAccelerateForJump();
+        }
+    }
+
+    doAccelerateForJump() {
+        this.vy -= this.ayJump;
+        this.vy = Math.max(this.vy, -this.vyJumpMax);
+        this.jumpFrames++;
+    }
     
     update() {
+        if (this.y < this.ymax) {
+           this.vy += this.ayFall;
+        }
+
         this.x += this.vx;
         this.y += this.vy;
 
@@ -129,6 +167,12 @@ class Sprite {
         if (this.x > this.xmax) {
             this.x = this.xmax;
             this.vx = -0.8 * this.vx;
+        }
+
+        if (this.y > this.ymax) {
+            this.vy = 0;
+            this.y = this.ymax;
+            this.jumpFrames = 0;
         }
     }
 
