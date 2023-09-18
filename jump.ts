@@ -11,6 +11,12 @@ class Game {
     private readonly ticker = this.tick.bind(this);
     private enemyDropCountDown = 60;
 
+    // Plan for better overlap system:
+    // - Refactor to a flat list of sprites.
+    // - Add a way to remove a sprite.
+    // - Create general overlap detector that given any two sprites will characterize the overlap
+    //   (e.g., list surfaces that overlap).
+
     constructor() {
         const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;    
         canvas.width = this.w = window.innerWidth * 0.8;
