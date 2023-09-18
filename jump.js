@@ -1,7 +1,9 @@
 class Game {
     constructor() {
         this.controller = new Controller();
+        this.enemies = [];
         this.ticker = this.tick.bind(this);
+        this.enemyDropCountDown = 60;
         const canvas = document.getElementById("myCanvas");
         canvas.width = this.w = window.innerWidth * 0.8;
         canvas.height = this.h = window.innerHeight * 0.8;
@@ -28,6 +30,32 @@ class Game {
         requestAnimationFrame(this.ticker);
     }
     update() {
+        this.updateForController();
+        this.updateDrops();
+        this.player.update();
+        for (const e of this.enemies) {
+            e.update();
+        }
+        this.player.updateForOverlaps(this.obstacles);
+        this.player.updateForGround();
+        for (const e of this.enemies) {
+            e.updateForOverlaps(this.obstacles);
+            e.updateForGround();
+        }
+    }
+    updateDrops() {
+        if (this.enemies.length < 3) {
+            if (--this.enemyDropCountDown <= 0) {
+                this.dropEnemy();
+            }
+        }
+    }
+    dropEnemy() {
+        const enemy = new EnemySprite(70 + Math.random() * (this.w - 140), 0);
+        this.enemies.push(enemy);
+        this.enemyDropCountDown = 60;
+    }
+    updateForController() {
         if (this.controller.isDown(Button.Left)) {
             if (!this.controller.isDown(Button.Right)) {
                 this.player.accelerateX(-1);
@@ -42,14 +70,14 @@ class Game {
         if (this.controller.isDown(Button.Space)) {
             this.player.accelerateForJump();
         }
-        this.player.update();
-        this.player.updateForOverlaps(this.obstacles);
-        this.player.updateForGround();
     }
     draw() {
         this.drawBackground();
         for (const obstacle of this.obstacles) {
             obstacle.draw(this.ctx);
+        }
+        for (const e of this.enemies) {
+            e.draw(this.ctx);
         }
         this.player.draw(this.ctx);
     }
@@ -93,28 +121,19 @@ class Sprite {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.vx = 0;
-        this.vy = 0;
     }
 }
-class PlayerSprite extends Sprite {
+class MovingSprite extends Sprite {
     constructor(x, y) {
         super(x, y);
+        this.vx = 0;
+        this.vy = 0;
         this.sz = 50;
-        this.jumpFrames = 0;
-        this.vxMax = 10;
-        this.axUp = 0.8;
-        this.axDown = 0.4;
-        this.ayJump = 3;
-        this.vyJumpMax = 20;
-        this.maxJumpFrames = 8;
         this.ayFall = 1;
+        this.jumpFrames = 0;
         this.xmin = 0;
         this.xmax = 500;
         this.ymax = 500;
-    }
-    isGrounded() {
-        return this.y === this.ymax;
     }
     place(y) {
         this.y = y !== null && y !== void 0 ? y : this.ymax;
@@ -124,29 +143,6 @@ class PlayerSprite extends Sprite {
     move(x, y) {
         this.x += x;
         this.y += y;
-    }
-    accelerateX(direction) {
-        this.vx += this.axUp * direction;
-        this.vx = clampAbs(this.vx, this.vxMax);
-    }
-    decelerateX() {
-        const newVX = this.vx - Math.sign(this.vx) * this.axDown;
-        if (Math.sign(newVX) != Math.sign(this.vx)) {
-            this.vx = 0;
-        }
-        else {
-            this.vx = clampAbs(newVX, this.vxMax);
-        }
-    }
-    accelerateForJump() {
-        if (this.isGrounded() || this.jumpFrames < this.maxJumpFrames) {
-            this.doAccelerateForJump();
-        }
-    }
-    doAccelerateForJump() {
-        this.vy -= this.ayJump;
-        this.vy = Math.max(this.vy, -this.vyJumpMax);
-        this.jumpFrames++;
     }
     update() {
         if (this.y < this.ymax) {
@@ -186,8 +182,51 @@ class PlayerSprite extends Sprite {
             this.place();
         }
     }
+}
+class PlayerSprite extends MovingSprite {
+    constructor(x, y) {
+        super(x, y);
+        this.vxMax = 10;
+        this.axUp = 0.8;
+        this.axDown = 0.4;
+        this.ayJump = 3;
+        this.vyJumpMax = 20;
+        this.maxJumpFrames = 8;
+    }
+    accelerateX(direction) {
+        this.vx += this.axUp * direction;
+        this.vx = clampAbs(this.vx, this.vxMax);
+    }
+    decelerateX() {
+        const newVX = this.vx - Math.sign(this.vx) * this.axDown;
+        if (Math.sign(newVX) != Math.sign(this.vx)) {
+            this.vx = 0;
+        }
+        else {
+            this.vx = clampAbs(newVX, this.vxMax);
+        }
+    }
+    accelerateForJump() {
+        if (this.jumpFrames < this.maxJumpFrames) {
+            this.vy -= this.ayJump;
+            this.vy = Math.max(this.vy, -this.vyJumpMax);
+            this.jumpFrames++;
+        }
+    }
     draw(ctx) {
         ctx.fillStyle = 'blue';
+        ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+    }
+}
+class EnemySprite extends MovingSprite {
+    constructor(x, y, w, h) {
+        super(x, y);
+        this.w = w;
+        this.h = h;
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
+    }
+    draw(ctx) {
+        ctx.fillStyle = 'red';
         ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
     }
 }
