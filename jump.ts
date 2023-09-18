@@ -4,7 +4,8 @@ class Game {
     private readonly h: number;
 
     private readonly controller = new Controller();
-    private readonly playerSprite: Sprite;
+    private readonly player: PlayerSprite;
+    private readonly obstacles: ObstacleSprite[];
 
     private readonly ticker = this.tick.bind(this);
 
@@ -15,11 +16,19 @@ class Game {
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.playerSprite = new Sprite(canvas.width / 2, canvas.height - 80);
-        this.playerSprite.xmin = 0;
-        this.playerSprite.xmax = this.w - 50;
-        this.playerSprite.ymax = this.h;
-        this.playerSprite.place();
+        this.player = new PlayerSprite(canvas.width / 2, canvas.height - 80);
+        this.player.xmin = 0;
+        this.player.xmax = this.w - 50;
+        this.player.ymax = this.h;
+        this.player.place();
+
+        const tierHeight = 120;
+        this.obstacles = [
+            new ObstacleSprite(100, canvas.height - tierHeight, canvas.width - 300, 20),
+            new ObstacleSprite(canvas.width / 2, canvas.height - tierHeight * 2, canvas.width * 0.4, 20),
+            new ObstacleSprite(100, canvas.height - tierHeight * 3, 200, 20),
+            new ObstacleSprite(400, canvas.height - tierHeight * 3, 200, 20),
+        ]
     }
 
     run() {
@@ -35,24 +44,29 @@ class Game {
     update() {
         if (this.controller.isDown(Button.Left)) {
             if (!this.controller.isDown(Button.Right)) {
-                this.playerSprite.accelerateX(-1);
+                this.player.accelerateX(-1);
             }
         } else if (this.controller.isDown(Button.Right)) {
-            this.playerSprite.accelerateX(+1);
+            this.player.accelerateX(+1);
         } else {
-            this.playerSprite.decelerateX();
+            this.player.decelerateX();
         }
 
         if (this.controller.isDown(Button.Space)) {
-            this.playerSprite.accelerateForJump();
+            this.player.accelerateForJump();
         }
 
-        this.playerSprite.update();
+        this.player.update();
+        this.player.updateForOverlaps(this.obstacles);
+        this.player.updateForGround();
     }
 
     draw() {
         this.drawBackground();
-        this.playerSprite.draw(this.ctx);
+        for (const obstacle of this.obstacles) {
+            obstacle.draw(this.ctx);
+        }
+        this.player.draw(this.ctx);
     }
 
     drawBackground() {
@@ -71,7 +85,8 @@ enum Button {
 const bindings = {
     'ArrowLeft': Button.Left,
     'ArrowRight': Button.Right,
-    ' ': Button.Space,
+    'Space': Button.Space,
+    'ControlLeft': Button.Space,
 }
 
 class Controller {
@@ -83,21 +98,26 @@ class Controller {
 
     constructor() {
         document.addEventListener('keydown', (event) => {
-            const button = bindings[event.key];
+            const button = bindings[event.code];
             if (button !== undefined) this.buttons[button] = true;
         });
         document.addEventListener('keyup', (event) => {
-            const button = bindings[event.key];
+            const button = bindings[event.code];
             if (button !== undefined) this.buttons[button] = false;
         });
     }
 }
 
 class Sprite {
+    constructor(protected x: number, protected y: number) {}
+
+    protected vx = 0;
+    protected vy = 0;
+}
+
+class PlayerSprite extends Sprite {
     readonly sz = 50;
 
-    private vx = 0;
-    private vy = 0;
     private jumpFrames = 0;
 
     private vxMax = 10;
@@ -114,15 +134,18 @@ class Sprite {
     xmax = 500;
     ymax = 500;
 
-    constructor(private x: number, private y: number) {
+    constructor(x: number, y: number) {
+        super(x, y);
     }
 
     isGrounded(): boolean {
         return this.y === this.ymax;
     }
 
-    place() {
-        this.y = this.ymax;
+    place(y?: number) {
+        this.y = y ?? this.ymax;
+        this.vy = 0;
+        this.jumpFrames = 0;
     }
 
     move(x: number, y: number) {
@@ -136,8 +159,12 @@ class Sprite {
     }
 
     decelerateX() {
-        this.vx -= Math.sign(this.vx) * this.axDown;
-        this.vx = clampAbs(this.vx, this.vxMax);
+        const newVX = this.vx - Math.sign(this.vx) * this.axDown;
+        if (Math.sign(newVX) != Math.sign(this.vx)) {
+            this.vx = 0;
+        } else {
+            this.vx = clampAbs(newVX, this.vxMax);
+        }
     }
 
     accelerateForJump() {
@@ -168,17 +195,53 @@ class Sprite {
             this.x = this.xmax;
             this.vx = -0.8 * this.vx;
         }
+    }
 
+    updateForOverlaps(obstacles: ObstacleSprite[]) {
+        for (const obstacle of obstacles) {
+            const [ox, oy, ow, oh] = obstacle.xywh();
+            
+            if (this.y - this.sz <= oy && oy <= this.y &&
+                this.x + this.sz >= ox && this.x <= ox + ow) {
+                if (this.vy < 0) {
+                    this.y = oy + this.sz;
+                    this.vy = 0;
+                }
+            }
+
+            if (this.y - this.sz <= oy - oh && oy - oh <= this.y &&
+                this.x + this.sz >= ox && this.x <= ox + ow) {
+                if (this.vy > 0) {
+                    this.place(oy - oh);
+                }
+            }
+        }
+    }
+
+    updateForGround() {
         if (this.y > this.ymax) {
-            this.vy = 0;
-            this.y = this.ymax;
-            this.jumpFrames = 0;
+            this.place();
         }
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = 'blue';
         ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+    }
+}
+
+class ObstacleSprite extends Sprite {
+    constructor(x: number, y: number, protected w: number, protected h: number) {
+        super(x, y);
+    }
+
+    draw(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = 'brown';
+        ctx.fillRect(this.x, this.y - this.h, this.w, this.h);
+    }
+
+    xywh() {
+        return [this.x, this.y, this.w, this.h];
     }
 }
 
