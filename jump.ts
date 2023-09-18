@@ -260,7 +260,7 @@ class PlayerSprite extends MovingSprite {
 }
 
 class EnemySprite extends MovingSprite {
-    constructor(x: number, y: number, protected w: number, protected h: number) {
+    constructor(x: number, y: number) {
         super(x, y);
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }

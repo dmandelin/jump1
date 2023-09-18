@@ -219,10 +219,8 @@ class PlayerSprite extends MovingSprite {
     }
 }
 class EnemySprite extends MovingSprite {
-    constructor(x, y, w, h) {
+    constructor(x, y) {
         super(x, y);
-        this.w = w;
-        this.h = h;
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
     draw(ctx) {
