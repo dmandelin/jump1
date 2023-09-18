@@ -1,4 +1,9 @@
 class Game {
+    // Plan for better overlap system:
+    // - Refactor to a flat list of sprites.
+    // - Add a way to remove a sprite.
+    // - Create general overlap detector that given any two sprites will characterize the overlap
+    //   (e.g., list surfaces that overlap).
     constructor() {
         this.controller = new Controller();
         this.enemies = [];
