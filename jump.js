@@ -111,11 +111,16 @@ var Button;
     Button[Button["Space"] = 2] = "Space";
     Button[Button["Count"] = 3] = "Count";
 })(Button || (Button = {}));
-const bindings = {
+const keyBindings = {
     'ArrowLeft': Button.Left,
     'ArrowRight': Button.Right,
     'Space': Button.Space,
     'ControlLeft': Button.Space,
+};
+const buttonBindings = {
+    'left': Button.Left,
+    'right': Button.Right,
+    'up': Button.Space,
 };
 class Controller {
     buttons = new Array(Button.Count).fill(false);
@@ -124,15 +129,32 @@ class Controller {
     }
     constructor() {
         document.addEventListener('keydown', (event) => {
-            const button = bindings[event.code];
+            const button = keyBindings[event.code];
             if (button !== undefined)
                 this.buttons[button] = true;
         });
         document.addEventListener('keyup', (event) => {
-            const button = bindings[event.code];
+            const button = keyBindings[event.code];
             if (button !== undefined)
                 this.buttons[button] = false;
         });
+        for (const [buttonId, button] of Object.entries(buttonBindings)) {
+            const element = document.getElementById(buttonId);
+            if (!element)
+                continue;
+            element.addEventListener('mousedown', (event) => {
+                this.buttons[button] = true;
+            });
+            element.addEventListener('mouseup', (event) => {
+                this.buttons[button] = false;
+            });
+            element.addEventListener('touchstart', (event) => {
+                this.buttons[button] = true;
+            });
+            element.addEventListener('touchend', (event) => {
+                this.buttons[button] = false;
+            });
+        }
     }
 }
 class Sprite {
