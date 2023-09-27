@@ -1,5 +1,4 @@
 // Stuff to do:
-// - Mobile controls
 // - Model floor as a block
 // - Sprite graphics
 // - Collisions between mobs/player
@@ -29,14 +28,15 @@ class Game {
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.player = new PlayerSprite(this.w / 2, this.h - 80);
+        this.player = new PlayerSprite(this.w / 2, this.h - 200);
         this.player.xmin = 0;
         this.player.xmax = this.w - 50;
-        this.player.ymax = this.h;
-        this.player.place();
 
         const tierHeight = 120;
         this.obstacles = [
+            // Bottom
+            new ObstacleSprite(0, this.h + 1, this.w, 1);
+            // Platforms
             new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
             new ObstacleSprite(100, this.h - tierHeight * 3, 200, 20),
@@ -64,10 +64,8 @@ class Game {
         }
 
         this.player.updateForOverlaps(this.obstacles);
-        this.player.updateForGround();
         for (const e of this.enemies) {
             e.updateForOverlaps(this.obstacles);
-            e.updateForGround();
         }
     }
 
@@ -192,13 +190,6 @@ class MovingSprite extends Sprite {
 
     xmin = 0;
     xmax = 500;
-    ymax = 500;
-
-    place(y?: number) {
-        this.y = y ?? this.ymax;
-        this.vy = 0;
-        this.jumpFrames = 0;
-    }
 
     move(x: number, y: number) {
         this.x += x;
@@ -206,9 +197,7 @@ class MovingSprite extends Sprite {
     }
 
     update() {
-        if (this.y < this.ymax) {
-           this.vy += this.ayFall;
-        }
+        this.vy += this.ayFall;
 
         this.x += this.vx;
         this.y += this.vy;
@@ -238,15 +227,11 @@ class MovingSprite extends Sprite {
             if (this.y - this.sz <= oy - oh && oy - oh <= this.y &&
                 this.x + this.sz >= ox && this.x <= ox + ow) {
                 if (this.vy > 0) {
-                    this.place(oy - oh);
+                    this.y = oy - oh;
+                    this.vy = 0;
+                    this.jumpFrames = 0;
                 }
             }
-        }
-    }
-
-    updateForGround() {
-        if (this.y > this.ymax) {
-            this.place();
         }
     }
 }
