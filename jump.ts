@@ -1,7 +1,11 @@
+// Stuff to do:
+// - Mobile controls
+// - Model floor as a block
+// - Sprite graphics
+// - Collisions between mobs/player
+
 class Game {
     private readonly ctx: CanvasRenderingContext2D;
-    private readonly w: number;
-    private readonly h: number;
 
     private readonly controller = new Controller();
     private readonly player: PlayerSprite;
@@ -17,14 +21,15 @@ class Game {
     // - Create general overlap detector that given any two sprites will characterize the overlap
     //   (e.g., list surfaces that overlap).
 
-    constructor() {
-        const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;    
-        canvas.width = this.w = window.innerWidth * 0.8;
-        canvas.height = this.h = window.innerHeight * 0.8;
+    constructor(private readonly w, private readonly h) {
+        const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
+        // CSS sizing of the canvas doesn't actualy update its width and height attributes.
+        canvas.width = w;
+        canvas.height = h;
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.player = new PlayerSprite(canvas.width / 2, canvas.height - 80);
+        this.player = new PlayerSprite(this.w / 2, this.h - 80);
         this.player.xmin = 0;
         this.player.xmax = this.w - 50;
         this.player.ymax = this.h;
@@ -32,10 +37,10 @@ class Game {
 
         const tierHeight = 120;
         this.obstacles = [
-            new ObstacleSprite(100, canvas.height - tierHeight, canvas.width - 300, 20),
-            new ObstacleSprite(canvas.width / 2, canvas.height - tierHeight * 2, canvas.width * 0.4, 20),
-            new ObstacleSprite(100, canvas.height - tierHeight * 3, 200, 20),
-            new ObstacleSprite(400, canvas.height - tierHeight * 3, 200, 20),
+            new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
+            new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(100, this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(400, this.h - tierHeight * 3, 200, 20),
         ]
     }
 
@@ -292,8 +297,20 @@ class ObstacleSprite extends Sprite {
     }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    new Game().run();
+document.addEventListener("DOMContentLoaded", () => {
+    let game: Game;
+    const canvas = document.querySelector('canvas');
+
+    const resizeObserver = new ResizeObserver(entries => {
+        if (game) return;
+        for (let entry of entries) {
+            if (entry.target === canvas) {
+                (game = new Game(entry.contentRect.width, entry.contentRect.height)).run();
+            }
+        }
+    });
+    
+    resizeObserver.observe(canvas);
 });
 
 function clamp(v: number, min: number, max: number) {

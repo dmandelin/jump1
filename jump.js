@@ -1,29 +1,42 @@
+// Stuff to do:
+// - Mobile controls
+// - Model floor as a block
+// - Sprite graphics
+// - Collisions between mobs/player
 class Game {
+    w;
+    h;
+    ctx;
+    controller = new Controller();
+    player;
+    obstacles;
+    enemies = [];
+    ticker = this.tick.bind(this);
+    enemyDropCountDown = 60;
     // Plan for better overlap system:
     // - Refactor to a flat list of sprites.
     // - Add a way to remove a sprite.
     // - Create general overlap detector that given any two sprites will characterize the overlap
     //   (e.g., list surfaces that overlap).
-    constructor() {
-        this.controller = new Controller();
-        this.enemies = [];
-        this.ticker = this.tick.bind(this);
-        this.enemyDropCountDown = 60;
+    constructor(w, h) {
+        this.w = w;
+        this.h = h;
         const canvas = document.getElementById("myCanvas");
-        canvas.width = this.w = window.innerWidth * 0.8;
-        canvas.height = this.h = window.innerHeight * 0.8;
+        // CSS sizing of the canvas doesn't actualy update its width and height attributes.
+        canvas.width = w;
+        canvas.height = h;
         this.ctx = canvas.getContext("2d");
-        this.player = new PlayerSprite(canvas.width / 2, canvas.height - 80);
+        this.player = new PlayerSprite(this.w / 2, this.h - 80);
         this.player.xmin = 0;
         this.player.xmax = this.w - 50;
         this.player.ymax = this.h;
         this.player.place();
         const tierHeight = 120;
         this.obstacles = [
-            new ObstacleSprite(100, canvas.height - tierHeight, canvas.width - 300, 20),
-            new ObstacleSprite(canvas.width / 2, canvas.height - tierHeight * 2, canvas.width * 0.4, 20),
-            new ObstacleSprite(100, canvas.height - tierHeight * 3, 200, 20),
-            new ObstacleSprite(400, canvas.height - tierHeight * 3, 200, 20),
+            new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
+            new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(100, this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(400, this.h - tierHeight * 3, 200, 20),
         ];
     }
     run() {
@@ -105,11 +118,11 @@ const bindings = {
     'ControlLeft': Button.Space,
 };
 class Controller {
+    buttons = new Array(Button.Count).fill(false);
     isDown(b) {
         return this.buttons[b];
     }
     constructor() {
-        this.buttons = new Array(Button.Count).fill(false);
         document.addEventListener('keydown', (event) => {
             const button = bindings[event.code];
             if (button !== undefined)
@@ -123,6 +136,8 @@ class Controller {
     }
 }
 class Sprite {
+    x;
+    y;
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -131,17 +146,17 @@ class Sprite {
 class MovingSprite extends Sprite {
     constructor(x, y) {
         super(x, y);
-        this.vx = 0;
-        this.vy = 0;
-        this.sz = 50;
-        this.ayFall = 1;
-        this.jumpFrames = 0;
-        this.xmin = 0;
-        this.xmax = 500;
-        this.ymax = 500;
     }
+    vx = 0;
+    vy = 0;
+    sz = 50;
+    ayFall = 1;
+    jumpFrames = 0;
+    xmin = 0;
+    xmax = 500;
+    ymax = 500;
     place(y) {
-        this.y = y !== null && y !== void 0 ? y : this.ymax;
+        this.y = y ?? this.ymax;
         this.vy = 0;
         this.jumpFrames = 0;
     }
@@ -189,14 +204,14 @@ class MovingSprite extends Sprite {
     }
 }
 class PlayerSprite extends MovingSprite {
+    vxMax = 10;
+    axUp = 0.8;
+    axDown = 0.4;
+    ayJump = 3;
+    vyJumpMax = 20;
+    maxJumpFrames = 8;
     constructor(x, y) {
         super(x, y);
-        this.vxMax = 10;
-        this.axUp = 0.8;
-        this.axDown = 0.4;
-        this.ayJump = 3;
-        this.vyJumpMax = 20;
-        this.maxJumpFrames = 8;
     }
     accelerateX(direction) {
         this.vx += this.axUp * direction;
@@ -234,6 +249,8 @@ class EnemySprite extends MovingSprite {
     }
 }
 class ObstacleSprite extends Sprite {
+    w;
+    h;
     constructor(x, y, w, h) {
         super(x, y);
         this.w = w;
@@ -247,8 +264,19 @@ class ObstacleSprite extends Sprite {
         return [this.x, this.y, this.w, this.h];
     }
 }
-document.addEventListener("DOMContentLoaded", function () {
-    new Game().run();
+document.addEventListener("DOMContentLoaded", () => {
+    let game;
+    const canvas = document.querySelector('canvas');
+    const resizeObserver = new ResizeObserver(entries => {
+        if (game)
+            return;
+        for (let entry of entries) {
+            if (entry.target === canvas) {
+                (game = new Game(entry.contentRect.width, entry.contentRect.height)).run();
+            }
+        }
+    });
+    resizeObserver.observe(canvas);
 });
 function clamp(v, min, max) {
     if (v < min)

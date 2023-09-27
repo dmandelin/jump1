@@ -10,8 +10,44 @@ h1 {
     margin-top: 20px;
 }
 
+.main {
+    width: 80vw;
+    height: 80vh;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
 canvas {
     display: block;
     background-color: #eee;
-    margin: 0 auto;
+    flex-grow: 1;
+}
+
+.button-bar {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.square-button {
+    width: 50px;
+    height: 50px;
+    border: none;
+    background-color: #ccc; /* Change to desired color */
+    font-size: 24px; 
+    cursor: pointer;
+    transition: background-color 0.3s; /* Smooth transition for color change */
+    margin: 5px;
+    outline: none; /* To remove the default focus outline */
+}
+
+.square-button:active { /* Color change when button is held down */
+    background-color: #aaa; /* Change to desired active color */
+}
+
+.spacer {
+    flex-grow: 1; /* Takes up remaining space to push the last button to the right */
 }
