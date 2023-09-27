@@ -25,7 +25,9 @@ class Game {
         canvas.width = w;
         canvas.height = h;
         this.ctx = canvas.getContext("2d");
-        this.player = new PlayerSprite(this.w / 2, this.h - 200);
+        const playerImage = new Image();
+        playerImage.src = 'img/ninja.png';
+        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
         this.player.xmin = 0;
         this.player.xmax = this.w - 50;
         const tierHeight = 120;
@@ -213,14 +215,16 @@ class MovingSprite extends Sprite {
     }
 }
 class PlayerSprite extends MovingSprite {
+    image;
     vxMax = 10;
     axUp = 0.8;
     axDown = 0.4;
     ayJump = 3;
     vyJumpMax = 20;
     maxJumpFrames = 8;
-    constructor(x, y) {
+    constructor(image, x, y) {
         super(x, y);
+        this.image = image;
     }
     accelerateX(direction) {
         this.vx += this.axUp * direction;
@@ -245,6 +249,7 @@ class PlayerSprite extends MovingSprite {
     draw(ctx) {
         ctx.fillStyle = 'blue';
         ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.sz);
     }
 }
 class EnemySprite extends MovingSprite {

@@ -28,14 +28,16 @@ class Game {
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.player = new PlayerSprite(this.w / 2, this.h - 200);
+        const playerImage = new Image();
+        playerImage.src = 'img/ninja.png';
+        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
         this.player.xmin = 0;
         this.player.xmax = this.w - 50;
 
         const tierHeight = 120;
         this.obstacles = [
             // Bottom
-            new ObstacleSprite(0, this.h + 1, this.w, 1);
+            new ObstacleSprite(0, this.h + 1, this.w, 1),
             // Platforms
             new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
@@ -245,7 +247,7 @@ class PlayerSprite extends MovingSprite {
     private vyJumpMax = 20;
     private maxJumpFrames = 8;
 
-    constructor(x: number, y: number) {
+    constructor(private readonly image: HTMLImageElement, x: number, y: number) {
         super(x, y);
     }
 
@@ -274,6 +276,7 @@ class PlayerSprite extends MovingSprite {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = 'blue';
         ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.sz);
     }
 }
 
