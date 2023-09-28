@@ -10,8 +10,13 @@ class Game {
     player;
     obstacles;
     enemies = [];
-    ticker = this.tick.bind(this);
     enemyDropCountDown = 60;
+    ticker = this.tick.bind(this);
+    tPrev = 0;
+    dtFrameAvg = 0;
+    dtAvg = 0;
+    dtUpdateAvg = 0;
+    dtDrawAvg = 0;
     // Plan for better overlap system:
     // - Refactor to a flat list of sprites.
     // - Add a way to remove a sprite.
@@ -45,9 +50,24 @@ class Game {
         this.tick();
     }
     tick() {
+        const t0 = performance.now();
+        const dtFrame = t0 - this.tPrev;
         this.update();
+        const t1 = performance.now();
         this.draw();
         requestAnimationFrame(this.ticker);
+        const t2 = performance.now();
+        const dtUpdate = t1 - t0;
+        const dtDraw = t2 - t1;
+        const dt = t2 - t0;
+        const α = this.dtAvg == 0 ? 1 : 0.2;
+        this.dtAvg = α * dt + (1 - α) * this.dtAvg;
+        this.dtUpdateAvg = α * dtUpdate + (1 - α) * this.dtUpdateAvg;
+        this.dtDrawAvg = α * dtDraw + (1 - α) * this.dtDrawAvg;
+        if (this.tPrev != 0) {
+            this.dtFrameAvg = α * dtFrame + (1 - α) * this.dtFrameAvg;
+        }
+        this.tPrev = t0;
     }
     update() {
         this.updateForController();
@@ -98,10 +118,23 @@ class Game {
             e.draw(this.ctx);
         }
         this.player.draw(this.ctx);
+        this.drawMeters();
     }
     drawBackground() {
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0, 0, this.w, this.h);
+    }
+    drawMeters() {
+        const fps = 1e3 / this.dtFrameAvg;
+        const x = this.w - 80;
+        let y = 0;
+        this.ctx.fillStyle = '#eef';
+        this.ctx.font = '16px sans-serif';
+        this.ctx.fillText(`FPS: ${fps.toFixed(1)}`, x, y += 20);
+        this.ctx.fillText(`dt:  ${(this.dtFrameAvg).toFixed(0.1)}`, x, y += 20);
+        this.ctx.fillText(` c:  ${(this.dtAvg).toFixed(0.1)}`, x, y += 20);
+        this.ctx.fillText(`  u: ${(this.dtUpdateAvg).toFixed(0.1)}`, x, y += 20);
+        this.ctx.fillText(`  d: ${(this.dtDrawAvg).toFixed(0.1)}`, x, y += 20);
     }
 }
 var Button;
