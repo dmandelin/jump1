@@ -10,6 +10,7 @@ class Game {
     player;
     obstacles;
     enemies = [];
+    xView = 0;
     enemyDropCountDown = 60;
     ticker = this.tick.bind(this);
     metersOn = false;
@@ -35,16 +36,23 @@ class Game {
         playerImage.src = 'img/ninja.png';
         this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
         this.player.xmin = 0;
-        this.player.xmax = this.w - 50;
+        this.player.xmax = this.w * 2 - 50;
         const tierHeight = 120;
         this.obstacles = [
             // Bottom
-            new ObstacleSprite(0, this.h + 1, this.w, 1),
+            new ObstacleSprite(0, this.h + 1, this.w * 2, 1),
+            // Left
+            new ObstacleSprite(-200, this.h, 200, this.h),
+            // Right
+            new ObstacleSprite(this.w * 2, this.h, 200, this.h),
             // Platforms
             new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
             new ObstacleSprite(100, this.h - tierHeight * 3, 200, 20),
             new ObstacleSprite(400, this.h - tierHeight * 3, 200, 20),
+            // Further right
+            new ObstacleSprite(this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
         ];
         document.addEventListener('keydown', (event) => {
             if (event.key === 'm') {
@@ -86,6 +94,7 @@ class Game {
         for (const e of this.enemies) {
             e.updateForOverlaps(this.obstacles);
         }
+        this.scrollForPlayer();
     }
     updateDrops() {
         if (this.enemies.length < 3) {
@@ -115,6 +124,17 @@ class Game {
             this.player.accelerateForJump();
         }
     }
+    scrollForPlayer() {
+        const xPlayerOnView = this.player.getX() - this.xView;
+        const xShiftNeeded = xPlayerOnView < 2 * this.player.size() ?
+            xPlayerOnView - 2 * this.player.size() : (xPlayerOnView > this.w - 8 * this.player.size() ?
+            xPlayerOnView - (this.w - 8 * this.player.size()) :
+            0);
+        if (!xShiftNeeded)
+            return;
+        this.ctx.translate(-xShiftNeeded, 0);
+        this.xView += xShiftNeeded;
+    }
     draw() {
         this.drawBackground();
         for (const obstacle of this.obstacles) {
@@ -128,7 +148,7 @@ class Game {
     }
     drawBackground() {
         this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, this.w, this.h);
+        this.ctx.fillRect(0, 0, this.w * 2, this.h);
     }
     drawMeters() {
         if (!this.metersOn)
@@ -205,6 +225,9 @@ class Sprite {
         this.x = x;
         this.y = y;
     }
+    getX() {
+        return this.x;
+    }
 }
 class MovingSprite extends Sprite {
     constructor(x, y) {
@@ -217,6 +240,9 @@ class MovingSprite extends Sprite {
     jumpFrames = 0;
     xmin = 0;
     xmax = 500;
+    size() {
+        return this.sz;
+    }
     move(x, y) {
         this.x += x;
         this.y += y;
