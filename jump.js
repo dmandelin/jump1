@@ -34,8 +34,8 @@ class Game {
         canvas.height = h;
         this.ctx = canvas.getContext("2d");
         const playerImage = new Image();
-        playerImage.src = 'img/ninja.png';
-        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
+        playerImage.src = 'img/bunny.png';
+        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
         this.enemyImage.src = 'img/skeleton.png';
@@ -106,7 +106,7 @@ class Game {
         }
     }
     dropEnemy() {
-        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0);
+        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0, 28, 50);
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -128,9 +128,9 @@ class Game {
     }
     scrollForPlayer() {
         const xPlayerOnView = this.player.getX() - this.xView;
-        const xShiftNeeded = xPlayerOnView < 2 * this.player.size() ?
-            xPlayerOnView - 2 * this.player.size() : (xPlayerOnView > this.w - 8 * this.player.size() ?
-            xPlayerOnView - (this.w - 8 * this.player.size()) :
+        const xShiftNeeded = xPlayerOnView < 200 ?
+            xPlayerOnView - 200 : (xPlayerOnView > this.w - 400 ?
+            xPlayerOnView - (this.w - 400) :
             0);
         if (!xShiftNeeded)
             return;
@@ -232,19 +232,19 @@ class Sprite {
     }
 }
 class MovingSprite extends Sprite {
-    constructor(x, y) {
+    w;
+    h;
+    constructor(x, y, w, h) {
         super(x, y);
+        this.w = w;
+        this.h = h;
     }
     vx = 0;
     vy = 0;
-    sz = 50;
     ayFall = 1;
     jumpFrames = 0;
     xmin = 0;
     xmax = 500;
-    size() {
-        return this.sz;
-    }
     move(x, y) {
         this.x += x;
         this.y += y;
@@ -265,15 +265,15 @@ class MovingSprite extends Sprite {
     updateForOverlaps(obstacles) {
         for (const obstacle of obstacles) {
             const [ox, oy, ow, oh] = obstacle.xywh();
-            if (this.y - this.sz <= oy && oy <= this.y &&
-                this.x + this.sz >= ox && this.x <= ox + ow) {
+            if (this.y - this.h <= oy && oy <= this.y &&
+                this.x + this.w >= ox && this.x <= ox + ow) {
                 if (this.vy < 0) {
-                    this.y = oy + this.sz;
+                    this.y = oy + this.h;
                     this.vy = 0;
                 }
             }
-            if (this.y - this.sz <= oy - oh && oy - oh <= this.y &&
-                this.x + this.sz >= ox && this.x <= ox + ow) {
+            if (this.y - this.h <= oy - oh && oy - oh <= this.y &&
+                this.x + this.w >= ox && this.x <= ox + ow) {
                 if (this.vy > 0) {
                     this.y = oy - oh;
                     this.vy = 0;
@@ -291,8 +291,8 @@ class PlayerSprite extends MovingSprite {
     ayJump = 3;
     vyJumpMax = 20;
     maxJumpFrames = 8;
-    constructor(image, x, y) {
-        super(x, y);
+    constructor(image, x, y, w, h) {
+        super(x, y, w, h);
         this.image = image;
     }
     accelerateX(direction) {
@@ -316,23 +316,19 @@ class PlayerSprite extends MovingSprite {
         }
     }
     draw(ctx) {
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
-        ctx.drawImage(this.image, this.x, this.y - this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.h);
     }
 }
 class EnemySprite extends MovingSprite {
     image;
-    w = 28;
-    h = 50;
-    constructor(image, x, y) {
-        super(x, y);
+    constructor(image, x, y, w, h) {
+        super(x, y, w, h);
         this.image = image;
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
     draw(ctx) {
         ctx.fillStyle = 'red';
-        ctx.drawImage(this.image, this.x, this.y - this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.h);
     }
 }
 class ObstacleSprite extends Sprite {

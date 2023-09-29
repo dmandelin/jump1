@@ -40,8 +40,8 @@ class Game {
         this.ctx = canvas.getContext("2d")!;
 
         const playerImage = new Image();
-        playerImage.src = 'img/ninja.png';
-        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
+        playerImage.src = 'img/bunny.png';
+        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
 
@@ -126,7 +126,7 @@ class Game {
     }
 
     dropEnemy() {
-        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0);
+        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0, 28, 50);
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -149,10 +149,10 @@ class Game {
 
     scrollForPlayer() {
         const xPlayerOnView = this.player.getX() - this.xView;
-        const xShiftNeeded = xPlayerOnView < 2 * this.player.size() ?
-            xPlayerOnView - 2 * this.player.size() : (
-                xPlayerOnView > this.w - 8 * this.player.size() ?
-                xPlayerOnView - (this.w - 8 * this.player.size()) :
+        const xShiftNeeded = xPlayerOnView < 200 ?
+            xPlayerOnView - 200 : (
+                xPlayerOnView > this.w - 400 ?
+                xPlayerOnView - (this.w - 400) :
                 0);
         if (!xShiftNeeded) return;
 
@@ -259,24 +259,18 @@ class Sprite {
 }
 
 class MovingSprite extends Sprite {
-    constructor(x: number, y: number) {
+    constructor(x: number, y: number, protected w: number, protected h: number) {
         super(x, y);
     }
     
     protected vx = 0;
     protected vy = 0;
 
-    readonly sz = 50;
-
     private ayFall = 1;
     protected jumpFrames = 0;
 
     xmin = 0;
     xmax = 500;
-
-    size() {
-        return this.sz;
-    }
 
     move(x: number, y: number) {
         this.x += x;
@@ -303,16 +297,16 @@ class MovingSprite extends Sprite {
         for (const obstacle of obstacles) {
             const [ox, oy, ow, oh] = obstacle.xywh();
             
-            if (this.y - this.sz <= oy && oy <= this.y &&
-                this.x + this.sz >= ox && this.x <= ox + ow) {
+            if (this.y - this.h <= oy && oy <= this.y &&
+                this.x + this.w >= ox && this.x <= ox + ow) {
                 if (this.vy < 0) {
-                    this.y = oy + this.sz;
+                    this.y = oy + this.h;
                     this.vy = 0;
                 }
             }
 
-            if (this.y - this.sz <= oy - oh && oy - oh <= this.y &&
-                this.x + this.sz >= ox && this.x <= ox + ow) {
+            if (this.y - this.h <= oy - oh && oy - oh <= this.y &&
+                this.x + this.w >= ox && this.x <= ox + ow) {
                 if (this.vy > 0) {
                     this.y = oy - oh;
                     this.vy = 0;
@@ -332,8 +326,8 @@ class PlayerSprite extends MovingSprite {
     private vyJumpMax = 20;
     private maxJumpFrames = 8;
 
-    constructor(private readonly image: HTMLImageElement, x: number, y: number) {
-        super(x, y);
+    constructor(private readonly image: HTMLImageElement, x: number, y: number, w: number, h: number) {
+        super(x, y, w, h);
     }
 
     accelerateX(direction: 1|-1) {
@@ -359,24 +353,19 @@ class PlayerSprite extends MovingSprite {
     }    
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
-        ctx.drawImage(this.image, this.x, this.y - this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.h);
     }
 }
 
 class EnemySprite extends MovingSprite {
-    protected readonly w = 28;
-    protected readonly h = 50;
-
-    constructor(private readonly image: HTMLImageElement, x: number, y: number) {
-        super(x, y);
+    constructor(private readonly image: HTMLImageElement, x: number, y: number, w: number, h: number) {
+        super(x, y, w, h);
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = 'red';
-        ctx.drawImage(this.image, this.x, this.y - this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.h);
     }
 }
 
