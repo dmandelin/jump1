@@ -14,6 +14,8 @@ class Game {
     private enemyDropCountDown = 60;
 
     private readonly ticker = this.tick.bind(this);
+
+    private metersOn = false;
     private tPrev = 0;
     private dtFrameAvg = 0;
     private dtAvg = 0;
@@ -50,6 +52,12 @@ class Game {
             new ObstacleSprite(100, this.h - tierHeight * 3, 200, 20),
             new ObstacleSprite(400, this.h - tierHeight * 3, 200, 20),
         ]
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'm') {
+                this.metersOn = !this.metersOn;
+            }
+        });
     }
 
     run() {
@@ -144,6 +152,8 @@ class Game {
     }
 
     drawMeters() {
+        if (!this.metersOn) return;
+        
         const fps = 1e3 / this.dtFrameAvg;
 
         const x = this.w - 80;
