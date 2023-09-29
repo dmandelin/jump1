@@ -13,6 +13,7 @@ class Game {
 
     private xView = 0;
 
+    private readonly enemyImage = new Image();
     private enemyDropCountDown = 60;
 
     private readonly ticker = this.tick.bind(this);
@@ -44,14 +45,16 @@ class Game {
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
 
+        this.enemyImage.src = 'img/skeleton.png';
+
         const tierHeight = 120;
         this.obstacles = [
             // Bottom
             new ObstacleSprite(0, this.h + 1, this.w * 2, 1),
             // Left
-            new ObstacleSprite(-200, this.h, 200, this.h);
+            new ObstacleSprite(-200, this.h, 200, this.h),
             // Right
-            new ObstacleSprite(this.w * 2, this.h, 200, this.h);
+            new ObstacleSprite(this.w * 2, this.h, 200, this.h),
             // Platforms
             new ObstacleSprite(100, this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
@@ -123,7 +126,7 @@ class Game {
     }
 
     dropEnemy() {
-        const enemy = new EnemySprite(70 + Math.random() * (this.w - 140), 0);
+        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0);
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -363,14 +366,17 @@ class PlayerSprite extends MovingSprite {
 }
 
 class EnemySprite extends MovingSprite {
-    constructor(x: number, y: number) {
+    protected readonly w = 28;
+    protected readonly h = 50;
+
+    constructor(private readonly image: HTMLImageElement, x: number, y: number) {
         super(x, y);
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
 
     draw(ctx: CanvasRenderingContext2D) {
         ctx.fillStyle = 'red';
-        ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.sz);
     }
 }
 

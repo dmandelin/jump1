@@ -11,6 +11,7 @@ class Game {
     obstacles;
     enemies = [];
     xView = 0;
+    enemyImage = new Image();
     enemyDropCountDown = 60;
     ticker = this.tick.bind(this);
     metersOn = false;
@@ -37,6 +38,7 @@ class Game {
         this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
+        this.enemyImage.src = 'img/skeleton.png';
         const tierHeight = 120;
         this.obstacles = [
             // Bottom
@@ -104,7 +106,7 @@ class Game {
         }
     }
     dropEnemy() {
-        const enemy = new EnemySprite(70 + Math.random() * (this.w - 140), 0);
+        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0);
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -320,13 +322,17 @@ class PlayerSprite extends MovingSprite {
     }
 }
 class EnemySprite extends MovingSprite {
-    constructor(x, y) {
+    image;
+    w = 28;
+    h = 50;
+    constructor(image, x, y) {
         super(x, y);
+        this.image = image;
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
     draw(ctx) {
         ctx.fillStyle = 'red';
-        ctx.fillRect(this.x, this.y - this.sz, this.sz, this.sz);
+        ctx.drawImage(this.image, this.x, this.y - this.sz);
     }
 }
 class ObstacleSprite extends Sprite {
