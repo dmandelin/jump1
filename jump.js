@@ -42,8 +42,12 @@ class Game {
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
         this.enemyImage.src = 'img/skeleton.png';
+        const trophyImage = new Image();
+        trophyImage.src = 'img/trophy.png';
         const tierHeight = 120;
         this.obstacles = [
+            // Trophy
+            new ObstacleSprite(trophyImage, this.w * 2 - 100, 100, 32, 32),
             // Bottom
             new ObstacleSprite(undefined, 0, this.h + 1, this.w * 2, 1),
             // Left
