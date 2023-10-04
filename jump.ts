@@ -19,6 +19,8 @@ class Game {
     private readonly enemyImage = new Image();
     private enemyDropCountDown = 60;
 
+    private readonly trophy: TrophySprite;
+
     private readonly ticker = this.tick.bind(this);
 
     private metersOn = false;
@@ -53,24 +55,27 @@ class Game {
 
         const trophyImage = new Image();
         trophyImage.src = 'img/trophy.png';
+        this.trophy = new TrophySprite(trophyImage, this.w * 2 - 100, 100, 32, 32);
+
+        const wallImage = new Image();
+        wallImage.src = 'img/wall.png';
+
         const tierHeight = 120;
         this.obstacles = [
-            // Trophy
-            new ObstacleSprite(trophyImage, this.w * 2 - 100, 100, 32, 32),
             // Bottom
-            new ObstacleSprite(undefined, 0, this.h + 1, this.w * 2, 1),
+            new ObstacleSprite(wallImage, 0, this.h + 1, this.w * 2, 1),
             // Left
-            new ObstacleSprite(undefined, -200, this.h, 200, this.h),
+            new ObstacleSprite(wallImage, -200, this.h, 200, this.h),
             // Right
-            new ObstacleSprite(undefined, this.w * 2, this.h, 200, this.h),
+            new ObstacleSprite(wallImage, this.w * 2, this.h, 200, this.h),
             // Platforms
-            new ObstacleSprite(undefined, 100, this.h - tierHeight, this.w - 300, 20),
-            new ObstacleSprite(undefined, this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(undefined, 100, this.h - tierHeight * 3, 200, 20),
-            new ObstacleSprite(undefined, 400, this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(wallImage, 100, this.h - tierHeight, this.w - 300, 20),
+            new ObstacleSprite(wallImage, this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(wallImage, 100, this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(wallImage, 400, this.h - tierHeight * 3, 200, 20),
             // Further right
-            new ObstacleSprite(undefined, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(undefined, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
+            new ObstacleSprite(wallImage, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(wallImage, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
         ]
 
         document.addEventListener('keydown', (event) => {
@@ -126,7 +131,7 @@ class Game {
             if (this.player.overlaps(e)) {
                 this.obstacles.push(new ObstacleSprite(
                     this.stonePlayerImage,
-                    this.player.getX(), this.player.getY(), this.player.getW(), this.player.getH()));
+                    this.player.x, this.player.y, this.player.w, this.player.h));
                 this.player.hide();
                 this.playerRespawnCountdown = 180;
             }
@@ -154,6 +159,7 @@ class Game {
 
     dropEnemy() {
         const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0, 28, 50);
+        enemy.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -175,7 +181,7 @@ class Game {
     }
 
     scrollForPlayer() {
-        const xPlayerOnView = this.player.getX() - this.xView;
+        const xPlayerOnView = this.player.x - this.xView;
         const xShiftNeeded = xPlayerOnView < 150 ?
             xPlayerOnView - 150 : (
                 xPlayerOnView > this.w - 300 ?
@@ -192,9 +198,11 @@ class Game {
         for (const obstacle of this.obstacles) {
             obstacle.draw(this.ctx);
         }
+
         for (const e of this.enemies) {
             e.draw(this.ctx);
         }
+        this.trophy.draw(this.ctx);
         this.player.draw(this.ctx);
 
         this.drawMeters();
@@ -278,23 +286,27 @@ class Controller {
 }
 
 class Sprite {
-    constructor(protected x: number, protected y: number) {}
+    constructor(protected image: HTMLImageElement,
+        protected x_: number, protected y_: number, 
+        protected w_: number, protected h_: number) {}
 
-    getX() {
-        return this.x;
-    }
+    get x() { return this.x_; }
+    protected set x(v: number) { this.x_ = v;}
+    get y() { return this.y_; }
+    protected set y(v: number) { this.y_ = v;}
+    get w() { return this.w_; }
+    protected set w(v: number) { this.w_ = v;}
+    get h() { return this.h_; }
+    protected set h(v: number) { this.h_ = v;}
+    xywh() { return [this.x, this.y, this.w, this.h];}
 
-    getY() {
-        return this.y;
+    draw(ctx: CanvasRenderingContext2D) {
+        ctx.drawImage(this.image, this.x, this.y - this.h);
     }
 }
 
-class MovingSprite extends Sprite {
-    constructor(x: number, y: number, protected w: number, protected h: number) {
-        super(x, y);
-    }
-    
-    protected vx = 0;
+class MovingSprite extends Sprite {  
+    vx = 0;
     protected vy = 0;
 
     private ayFall = 1;
@@ -308,9 +320,6 @@ class MovingSprite extends Sprite {
     hide() {
         this.hidden = true;
     }
-
-    getW() { return this.w; }
-    getH() { return this.h; }
 
     move(x: number, y: number) {
         this.x += x;
@@ -379,10 +388,6 @@ class PlayerSprite extends MovingSprite {
     private vyJumpMax = 20;
     private maxJumpFrames = 8;
 
-    constructor(private readonly image: HTMLImageElement, x: number, y: number, w: number, h: number) {
-        super(x, y, w, h);
-    }
-
     respawn(x: number, y: number) {
         this.x = x;
         this.y = y;
@@ -423,32 +428,14 @@ class PlayerSprite extends MovingSprite {
 }
 
 class EnemySprite extends MovingSprite {
-    constructor(private readonly image: HTMLImageElement, x: number, y: number, w: number, h: number) {
-        super(x, y, w, h);
-        this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
-    }
+}
 
-    draw(ctx: CanvasRenderingContext2D) {
-        ctx.drawImage(this.image, this.x, this.y - this.h);
-    }
+class TrophySprite extends Sprite {
 }
 
 class ObstacleSprite extends Sprite {
-    constructor(protected readonly image: HTMLImageElement, x: number, y: number, protected w: number, protected h: number) {
-        super(x, y);
-    }
-
     draw(ctx: CanvasRenderingContext2D) {
-        if (this.image) {
-            ctx.drawImage(this.image, this.x, this.y - this.h);
-        } else {
-            ctx.fillStyle = 'brown';
-            ctx.fillRect(this.x, this.y - this.h, this.w, this.h);
-        }
-    }
-
-    xywh() {
-        return [this.x, this.y, this.w, this.h];
+        ctx.drawImage(this.image, this.x, this.y - this.h, this.w, this.h);
     }
 }
 
