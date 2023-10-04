@@ -23,6 +23,9 @@ class Game {
 
     private readonly ticker = this.tick.bind(this);
 
+    protected score = 0;
+    protected overlappedTrophy = false;
+
     private metersOn = false;
     private tPrev = 0;
     private dtFrameAvg = 0;
@@ -146,6 +149,15 @@ class Game {
             }
         }
 
+        if (this.player.overlaps(this.trophy)) {
+            if (!this.overlappedTrophy) {
+                ++this.score;
+                this.overlappedTrophy = true;
+            }
+        } else {
+            this.overlappedTrophy = false;
+        }
+
         this.scrollForPlayer();
     }
 
@@ -202,6 +214,7 @@ class Game {
         for (const e of this.enemies) {
             e.draw(this.ctx);
         }
+        this.drawScore()
         this.trophy.draw(this.ctx);
         this.player.draw(this.ctx);
 
@@ -211,6 +224,14 @@ class Game {
     drawBackground() {
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0, 0, this.w * 2, this.h);
+    }
+
+    drawScore() {
+        if (this.score) {
+            this.ctx.fillStyle = 'white';
+            this.ctx.font = '24px monospace';
+            this.ctx.fillText(String(this.score), this.w - 30 + this.xView, 30);
+        }
     }
 
     drawMeters() {
@@ -300,6 +321,13 @@ class Sprite {
     protected set h(v: number) { this.h_ = v;}
     xywh() { return [this.x, this.y, this.w, this.h];}
 
+    overlaps(other: Sprite): boolean {
+        return this.x + this.w >= other.x &&
+            this.x <= other.x + other.w &&
+            this.y + this.h >= other.y &&
+            this.y <= other.y + other.h;
+    }
+
     draw(ctx: CanvasRenderingContext2D) {
         ctx.drawImage(this.image, this.x, this.y - this.h);
     }
@@ -342,15 +370,6 @@ class MovingSprite extends Sprite {
             this.x = this.xmax;
             this.vx = -0.8 * this.vx;
         }
-    }
-
-    overlaps(other: MovingSprite): boolean {
-        if (this.hidden) return;
-
-        return this.x + this.w >= other.x &&
-            this.x <= other.x + other.w &&
-            this.y + this.h >= other.y &&
-            this.y <= other.y + other.h;
     }
 
     updateForOverlaps(obstacles: ObstacleSprite[]) {
