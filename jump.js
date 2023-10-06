@@ -1,3 +1,17 @@
+// Basic features to add:
+// - Better start location
+// - Give skeletons the ability to hang out on a platform instead of walking off
+// - Stone bunny crumbles after a while
+// - Skeletons don't slow down on wall collision
+// - More platforms and things
+// - Some interesting behavior when skeletons collide with each other (maybe)
+// Fancier features to add:
+// - ladders
+// - springs
+// - trapdoors
+// - slanted surfaces
+// - traps that can be sprung to attack skeletons
+// - flying enemy
 // Refactorings:
 // - Better hiding of player
 const Images = {
@@ -46,12 +60,10 @@ class Game {
         canvas.width = w;
         canvas.height = h;
         this.ctx = canvas.getContext("2d");
-        this.player = new PlayerSprite(180, this.h - 200, 31, 50);
-        this.player.xmin = 0;
-        this.player.xmax = this.w * 2 - 50;
-        this.trophy = new TrophySprite(Images.goal, this.w * 2 - 100, 100, 32, 32);
         const tierHeight = 120;
         this.obstacles = [
+            // Start block
+            new ObstacleSprite(Images.wall, 0, 0.4 * this.h, 50, 50),
             // Bottom
             new ObstacleSprite(Images.wall, 0, this.h + 1, this.w * 2, 1),
             // Left
@@ -61,12 +73,15 @@ class Game {
             // Platforms
             new ObstacleSprite(Images.wall, 100, 20 + this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(Images.wall, this.w / 2, 20 + this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(Images.wall, 100, 20 + this.h - tierHeight * 3, 200, 20),
             new ObstacleSprite(Images.wall, 400, 20 + this.h - tierHeight * 3, 200, 20),
             // Further right
             new ObstacleSprite(Images.wall, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
             new ObstacleSprite(Images.wall, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
         ];
+        this.trophy = new TrophySprite(Images.goal, this.w * 2 - 100, 100, 32, 32);
+        this.player = new PlayerSprite(10, 0.4 * this.h - 50, 31, 50);
+        this.player.xmin = 0;
+        this.player.xmax = this.w * 2 - 50;
         document.addEventListener('keydown', (event) => {
             if (event.key === 'm') {
                 this.metersOn = !this.metersOn;
@@ -130,7 +145,7 @@ class Game {
         if (this.playerRespawnCountdown > 0) {
             if (--this.playerRespawnCountdown == 0) {
                 if (this.player.hidden) {
-                    this.player.respawn(this.w / 2, this.h - 200);
+                    this.player.respawn();
                 }
                 this.playerRespawnCountdown = -1;
             }
@@ -437,6 +452,8 @@ class MovingSprite extends Sprite {
     }
 }
 class PlayerSprite extends MovingSprite {
+    xRespawn;
+    yRespawn;
     vxMax = 7;
     axAccel = 0.6;
     axAccelInAir = 0.2;
@@ -451,6 +468,8 @@ class PlayerSprite extends MovingSprite {
     subFramesPerFrame = 5;
     constructor(x, y, w, h) {
         super(Images.playerR1, x, y, w, h);
+        this.xRespawn = x;
+        this.yRespawn = y;
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
     }
     update() {
@@ -465,9 +484,9 @@ class PlayerSprite extends MovingSprite {
         }
         this.image = images[this.animationFrame];
     }
-    respawn(x, y) {
-        this.x = x;
-        this.y = y;
+    respawn() {
+        this.x = this.xRespawn;
+        this.y = this.yRespawn;
         this.vx = 0;
         this.vy = 0;
         this.hidden = false;
