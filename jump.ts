@@ -1,5 +1,4 @@
 // Stuff to do:
-// - Side wall glitching
 // - Platform stretching
 // - Transparent background on skeletons
 // - Additional skeleton on scoring
@@ -7,10 +6,12 @@
 // - Running speed
 // - Amount of L/R control while in the air
 // - Animate bunny feet
+// - Sideways collisions with obstacle
 // Refactorings:
 // - Corral images
 // - Jump animation code
 // - Floor code
+// - Obstacle collision code
 
 class Game {
     private readonly ctx: CanvasRenderingContext2D;
@@ -79,7 +80,7 @@ class Game {
             // Left
             new ObstacleSprite(wallImage, -200, this.h, 200, this.h),
             // Right
-            new ObstacleSprite(wallImage, this.w * 2, this.h, 200, this.h),
+            new ObstacleSprite(wallImage, this.w * 2, this.h, 300, this.h),
             // Platforms
             new ObstacleSprite(wallImage, 100, this.h - tierHeight, this.w - 300, 20),
             new ObstacleSprite(wallImage, this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
@@ -463,7 +464,10 @@ class TrophySprite extends Sprite {
 
 class ObstacleSprite extends Sprite {
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.drawImage(this.image, this.x, this.y - this.h, this.w, this.h);
+        if (!this.image.height) return;
+        for (let y = this.y - this.h; y < this.y; y += this.image.height) {
+            ctx.drawImage(this.image, 0, 0, this.w, this.h, this.x, y, this.w, this.h);
+        }
     }
 }
 
