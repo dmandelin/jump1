@@ -1,10 +1,9 @@
 // Stuff to do:
+// - Face bunny in direction of motion
 // - Animate bunny feet
-// - Don't keep jumping if button is held down
-// - Better sensitivity on jump amount
+// - Consider reducing jump latency
 // Refactorings:
 // - Corral images
-// - Jump animation code
 // - Better hiding of player
 class Game {
     w;
@@ -70,6 +69,17 @@ class Game {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'm') {
                 this.metersOn = !this.metersOn;
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'e') {
+                if (this.enemyLimit) {
+                    this.enemyLimit = 0;
+                    this.enemies.length = 0;
+                }
+                else {
+                    this.enemyLimit = 3;
+                }
             }
         });
     }
@@ -148,6 +158,8 @@ class Game {
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
+    jumpDownCount = 0;
+    jumpHeld = false;
     updateForController() {
         if (this.controller.isDown(Button.Left)) {
             if (!this.controller.isDown(Button.Right)) {
@@ -161,7 +173,19 @@ class Game {
             this.player.decelerateX();
         }
         if (this.controller.isDown(Button.Space)) {
-            this.player.jump();
+            if (++this.jumpDownCount == this.player.jumpChargeMax) {
+                this.player.jump(this.jumpDownCount);
+                this.jumpHeld = true;
+            }
+        }
+        else {
+            if (this.jumpDownCount) {
+                if (!this.jumpHeld) {
+                    this.player.jump(this.jumpDownCount);
+                }
+                this.jumpDownCount = 0;
+            }
+            this.jumpHeld = false;
         }
     }
     scrollForPlayer() {
@@ -346,6 +370,7 @@ class MovingSprite extends Sprite {
     hide() {
         this.hidden = true;
     }
+    get grounded() { return !!this.ground; }
     move(x, y) {
         this.x += x;
         this.y += y;
@@ -398,12 +423,12 @@ class MovingSprite extends Sprite {
                     case OverlapDirection.Left:
                         this.r = obstacle.l;
                         if (this.vx > 0)
-                            this.vx *= -1;
+                            this.vx *= -0.5;
                         break;
                     case OverlapDirection.Right:
                         this.l = obstacle.r;
                         if (this.vx < 0)
-                            this.vx *= -1;
+                            this.vx *= -0.5;
                         break;
                 }
             }
@@ -415,15 +440,14 @@ class PlayerSprite extends MovingSprite {
     axAccel = 0.6;
     axAccelInAir = 0.2;
     axDecel = 0.4;
-    ayJump = 10;
+    ayJump = 5;
     vyJumpMax = 17;
-    canJump = true;
+    jumpChargeMax = 8;
     respawn(x, y) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
-        this.canJump = true;
         this.hidden = false;
     }
     accelerateX(direction) {
@@ -446,26 +470,13 @@ class PlayerSprite extends MovingSprite {
             this.vx = clampAbs(newVX, this.vxMax);
         }
     }
-    jump() {
+    jump(charge) {
         if (this.hidden)
             return;
-        if (!this.canJump)
+        if (!this.grounded)
             return;
-        this.vy -= this.ayJump;
-        if (this.vy <= -this.vyJumpMax) {
-            this.vy = -this.vyJumpMax;
-            this.canJump = false;
-            this.launched();
-            return;
-        }
-    }
-    launched() {
-        super.launched();
-        this.canJump = false;
-    }
-    landed(ground) {
-        super.landed(ground);
-        this.canJump = true;
+        this.vy -= Math.min(charge, this.jumpChargeMax) / this.jumpChargeMax * this.vyJumpMax;
+        this.launched();
     }
     draw(ctx) {
         if (this.hidden)

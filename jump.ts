@@ -1,10 +1,9 @@
 // Stuff to do:
+// - Face bunny in direction of motion
 // - Animate bunny feet
-// - Don't keep jumping if button is held down
-// - Better sensitivity on jump amount
+// - Consider reducing jump latency
 // Refactorings:
 // - Corral images
-// - Jump animation code
 // - Better hiding of player
 
 class Game {
@@ -83,6 +82,17 @@ class Game {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'm') {
                 this.metersOn = !this.metersOn;
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'e') {
+                if (this.enemyLimit) {
+                    this.enemyLimit = 0;
+                    this.enemies.length = 0;
+                } else {
+                    this.enemyLimit = 3;
+                }
             }
         });
     }
@@ -177,6 +187,9 @@ class Game {
         this.enemyDropCountDown = 60;
     }
 
+    protected jumpDownCount = 0;
+    protected jumpHeld = false;
+
     updateForController() {
         if (this.controller.isDown(Button.Left)) {
             if (!this.controller.isDown(Button.Right)) {
@@ -189,7 +202,18 @@ class Game {
         }
 
         if (this.controller.isDown(Button.Space)) {
-            this.player.jump();
+            if (++this.jumpDownCount == this.player.jumpChargeMax) {
+                this.player.jump(this.jumpDownCount);
+                this.jumpHeld = true;
+            }
+        } else {
+            if (this.jumpDownCount) {
+                if (!this.jumpHeld) {
+                    this.player.jump(this.jumpDownCount);
+                }
+                this.jumpDownCount = 0;
+            }
+            this.jumpHeld = false;
         }
     }
 
@@ -383,6 +407,8 @@ class MovingSprite extends Sprite {
         this.hidden = true;
     }
 
+    get grounded(): boolean { return !!this.ground; }
+
     move(x: number, y: number) {
         this.x += x;
         this.y += y;
@@ -440,11 +466,11 @@ class MovingSprite extends Sprite {
                         break;
                     case OverlapDirection.Left:
                         this.r = obstacle.l;
-                        if (this.vx > 0) this.vx *= -1;
+                        if (this.vx > 0) this.vx *= -0.5;
                         break;
                     case OverlapDirection.Right:
                         this.l = obstacle.r;
-                        if (this.vx < 0) this.vx *= -1;
+                        if (this.vx < 0) this.vx *= -0.5;
                         break;
                 }
             }
@@ -453,21 +479,20 @@ class MovingSprite extends Sprite {
 }
 
 class PlayerSprite extends MovingSprite {
-    private vxMax = 7;
-    private axAccel = 0.6;
-    private axAccelInAir = 0.2;
-    private axDecel = 0.4;
+    protected vxMax = 7;
+    protected axAccel = 0.6;
+    protected axAccelInAir = 0.2;
+    protected axDecel = 0.4;
     
-    private ayJump = 10;
-    private vyJumpMax = 17;
-    private canJump = true;
+    protected ayJump = 5;
+    protected vyJumpMax = 17;
+    readonly jumpChargeMax = 8;
 
     respawn(x: number, y: number) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
-        this.canJump = true;
         this.hidden = false;
     }
 
@@ -489,26 +514,11 @@ class PlayerSprite extends MovingSprite {
         }
     }
 
-    jump() {
+    jump(charge: number) {
         if (this.hidden) return;
-        if (!this.canJump) return;
-        this.vy -= this.ayJump;
-        if (this.vy <= -this.vyJumpMax) {
-            this.vy = -this.vyJumpMax;
-            this.canJump = false;
-            this.launched();
-            return;
-        }
-    }
-
-    launched() {
-        super.launched()
-        this.canJump = false;
-    }
-
-    landed(ground: ObstacleSprite) {
-        super.landed(ground);
-        this.canJump = true;
+        if (!this.grounded) return;
+        this.vy -= Math.min(charge, this.jumpChargeMax) / this.jumpChargeMax * this.vyJumpMax;
+        this.launched();
     }
 
     draw(ctx: CanvasRenderingContext2D) {
