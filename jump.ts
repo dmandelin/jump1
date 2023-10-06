@@ -3,8 +3,21 @@
 // - Animate bunny feet
 // - Consider reducing jump latency
 // Refactorings:
-// - Corral images
 // - Better hiding of player
+
+const Images = {
+    player: img('bunny.png'),
+    playerStone: img('stonebunny.png'),
+    skeleton: img('skeleton.png'),
+    goal: img('trophy.png'),
+    wall: img('wall.png'),
+}
+
+function img(filename: string): HTMLImageElement {
+    const image = new Image();
+    image.src = 'img/' + filename;
+    return image;
+}
 
 class Game {
     private readonly ctx: CanvasRenderingContext2D;
@@ -16,10 +29,8 @@ class Game {
 
     private xView = 0;
 
-    private readonly stonePlayerImage = new Image();
     private playerRespawnCountdown = -1;
 
-    private readonly enemyImage = new Image();
     private enemyLimit = 3;
     private enemyDropCountDown = 60;
 
@@ -39,44 +50,34 @@ class Game {
 
     constructor(private readonly w, private readonly h) {
         const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
-        // CSS sizing of the canvas doesn't actualy update its width and height attributes.
+        // CSS sizing of the canvas doesn't actually update its width and height attributes.
         canvas.width = w;
         canvas.height = h;
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.stonePlayerImage.src = 'img/stonebunny.png';
-        const playerImage = new Image();
-        playerImage.src = 'img/bunny.png';
-        this.player = new PlayerSprite(playerImage, 180, this.h - 200, 31, 50);
+        this.player = new PlayerSprite(Images.player, 180, this.h - 200, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
 
-        this.enemyImage.src = 'img/skeleton.png';
-
-        const trophyImage = new Image();
-        trophyImage.src = 'img/trophy.png';
-        this.trophy = new TrophySprite(trophyImage, this.w * 2 - 100, 100, 32, 32);
-
-        const wallImage = new Image();
-        wallImage.src = 'img/wall.png';
+        this.trophy = new TrophySprite(Images.goal, this.w * 2 - 100, 100, 32, 32);
 
         const tierHeight = 120;
         this.obstacles = [
             // Bottom
-            new ObstacleSprite(wallImage, 0, this.h + 1, this.w * 2, 1),
+            new ObstacleSprite(Images.wall, 0, this.h + 1, this.w * 2, 1),
             // Left
-            new ObstacleSprite(wallImage, -200, this.h, 200, this.h),
+            new ObstacleSprite(Images.wall, -200, this.h, 200, this.h),
             // Right
-            new ObstacleSprite(wallImage, this.w * 2, this.h, 300, this.h),
+            new ObstacleSprite(Images.wall, this.w * 2, this.h, 300, this.h),
             // Platforms
-            new ObstacleSprite(wallImage, 100, 20 + this.h - tierHeight, this.w - 300, 20),
-            new ObstacleSprite(wallImage, this.w / 2, 20 + this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(wallImage, 100, 20 + this.h - tierHeight * 3, 200, 20),
-            new ObstacleSprite(wallImage, 400, 20 + this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(Images.wall, 100, 20 + this.h - tierHeight, this.w - 300, 20),
+            new ObstacleSprite(Images.wall, this.w / 2, 20 + this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(Images.wall, 100, 20 + this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(Images.wall, 400, 20 + this.h - tierHeight * 3, 200, 20),
             // Further right
-            new ObstacleSprite(wallImage, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(wallImage, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
+            new ObstacleSprite(Images.wall, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(Images.wall, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
         ]
 
         document.addEventListener('keydown', (event) => {
@@ -143,7 +144,7 @@ class Game {
             for (const e of this.enemies) {
                 if (this.player.overlaps(e)) {
                     this.obstacles.push(new ObstacleSprite(
-                        this.stonePlayerImage,
+                        Images.playerStone,
                         this.player.x, this.player.y, this.player.w, this.player.h));
                     this.player.hide();
                     this.playerRespawnCountdown = 180;
@@ -182,7 +183,7 @@ class Game {
     }
 
     dropEnemy() {
-        const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0, 28, 50);
+        const enemy = new EnemySprite(Images.skeleton, 70 + Math.random() * (this.w - 140), 0, 28, 50);
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
