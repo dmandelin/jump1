@@ -1,5 +1,4 @@
 // Stuff to do:
-// - Additional skeleton on scoring
 // - Jump speed and height
 // - Running speed
 // - Amount of L/R control while in the air
@@ -10,8 +9,6 @@
 // - Jump animation code
 // - Floor code
 // - Obstacle collision code
-// Mobile
-// - Make text 
 class Game {
     w;
     h;
@@ -24,6 +21,7 @@ class Game {
     stonePlayerImage = new Image();
     playerRespawnCountdown = -1;
     enemyImage = new Image();
+    enemyLimit = 3;
     enemyDropCountDown = 60;
     trophy;
     ticker = this.tick.bind(this);
@@ -135,6 +133,7 @@ class Game {
         if (this.player.overlaps(this.trophy)) {
             if (!this.overlappedTrophy) {
                 ++this.score;
+                ++this.enemyLimit;
                 this.overlappedTrophy = true;
             }
         }
@@ -144,7 +143,7 @@ class Game {
         this.scrollForPlayer();
     }
     updateDrops() {
-        if (this.enemies.length < 3) {
+        if (this.enemies.length < this.enemyLimit) {
             if (--this.enemyDropCountDown <= 0) {
                 this.dropEnemy();
             }

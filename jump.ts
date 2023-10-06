@@ -1,5 +1,4 @@
 // Stuff to do:
-// - Additional skeleton on scoring
 // - Jump speed and height
 // - Running speed
 // - Amount of L/R control while in the air
@@ -25,6 +24,7 @@ class Game {
     private playerRespawnCountdown = -1;
 
     private readonly enemyImage = new Image();
+    private enemyLimit = 3;
     private enemyDropCountDown = 60;
 
     private readonly trophy: TrophySprite;
@@ -160,6 +160,7 @@ class Game {
         if (this.player.overlaps(this.trophy)) {
             if (!this.overlappedTrophy) {
                 ++this.score;
+                ++this.enemyLimit;
                 this.overlappedTrophy = true;
             }
         } else {
@@ -170,7 +171,7 @@ class Game {
     }
 
     updateDrops() {
-        if (this.enemies.length < 3) {
+        if (this.enemies.length < this.enemyLimit) {
             if (--this.enemyDropCountDown <= 0) {
                 this.dropEnemy();
             }
