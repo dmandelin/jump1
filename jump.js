@@ -10,6 +10,8 @@
 // - Jump animation code
 // - Floor code
 // - Obstacle collision code
+// Mobile
+// - Make text 
 class Game {
     w;
     h;
