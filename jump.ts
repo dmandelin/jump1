@@ -1,7 +1,16 @@
 // Stuff to do:
-// - Model floor as a block
-// - Sprite graphics
-// - Collisions between mobs/player
+// - Side wall glitching
+// - Platform stretching
+// - Transparent background on skeletons
+// - Additional skeleton on scoring
+// - Jump speed and height
+// - Running speed
+// - Amount of L/R control while in the air
+// - Animate bunny feet
+// Refactorings:
+// - Corral images
+// - Jump animation code
+// - Floor code
 
 class Game {
     private readonly ctx: CanvasRenderingContext2D;
