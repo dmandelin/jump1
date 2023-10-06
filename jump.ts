@@ -1,14 +1,11 @@
 // Stuff to do:
-// - Jump speed and height
-// - Running speed
-// - Amount of L/R control while in the air
 // - Animate bunny feet
-// - Sideways collisions with obstacle
+// - Don't keep jumping if button is held down
+// - Better sensitivity on jump amount
 // Refactorings:
 // - Corral images
 // - Jump animation code
-// - Floor code
-// - Obstacle collision code
+// - Better hiding of player
 
 class Game {
     private readonly ctx: CanvasRenderingContext2D;
@@ -41,12 +38,6 @@ class Game {
     private dtUpdateAvg = 0;
     private dtDrawAvg = 0;
 
-    // Plan for better overlap system:
-    // - Refactor to a flat list of sprites.
-    // - Add a way to remove a sprite.
-    // - Create general overlap detector that given any two sprites will characterize the overlap
-    //   (e.g., list surfaces that overlap).
-
     constructor(private readonly w, private readonly h) {
         const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
         // CSS sizing of the canvas doesn't actualy update its width and height attributes.
@@ -58,7 +49,7 @@ class Game {
         this.stonePlayerImage.src = 'img/stonebunny.png';
         const playerImage = new Image();
         playerImage.src = 'img/bunny.png';
-        this.player = new PlayerSprite(playerImage, this.w / 2, this.h - 200, 31, 50);
+        this.player = new PlayerSprite(playerImage, 180, this.h - 200, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
 
@@ -80,10 +71,10 @@ class Game {
             // Right
             new ObstacleSprite(wallImage, this.w * 2, this.h, 300, this.h),
             // Platforms
-            new ObstacleSprite(wallImage, 100, this.h - tierHeight, this.w - 300, 20),
-            new ObstacleSprite(wallImage, this.w / 2, this.h - tierHeight * 2, this.w * 0.4, 20),
-            new ObstacleSprite(wallImage, 100, this.h - tierHeight * 3, 200, 20),
-            new ObstacleSprite(wallImage, 400, this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(wallImage, 100, 20 + this.h - tierHeight, this.w - 300, 20),
+            new ObstacleSprite(wallImage, this.w / 2, 20 + this.h - tierHeight * 2, this.w * 0.4, 20),
+            new ObstacleSprite(wallImage, 100, 20 + this.h - tierHeight * 3, 200, 20),
+            new ObstacleSprite(wallImage, 400, 20 + this.h - tierHeight * 3, 200, 20),
             // Further right
             new ObstacleSprite(wallImage, this.w, this.h - tierHeight * 2, this.w * 0.4, 20),
             new ObstacleSprite(wallImage, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
@@ -138,13 +129,15 @@ class Game {
             e.updateForOverlaps(this.obstacles);
         }
 
-        for (const e of this.enemies) {
-            if (this.player.overlaps(e)) {
-                this.obstacles.push(new ObstacleSprite(
-                    this.stonePlayerImage,
-                    this.player.x, this.player.y, this.player.w, this.player.h));
-                this.player.hide();
-                this.playerRespawnCountdown = 180;
+        if (!this.player.hidden) {
+            for (const e of this.enemies) {
+                if (this.player.overlaps(e)) {
+                    this.obstacles.push(new ObstacleSprite(
+                        this.stonePlayerImage,
+                        this.player.x, this.player.y, this.player.w, this.player.h));
+                    this.player.hide();
+                    this.playerRespawnCountdown = 180;
+                }
             }
         }
 
@@ -157,7 +150,7 @@ class Game {
             }
         }
 
-        if (this.player.overlaps(this.trophy)) {
+        if (!this.player.hidden && this.player.overlaps(this.trophy)) {
             if (!this.overlappedTrophy) {
                 ++this.score;
                 ++this.enemyLimit;
@@ -180,7 +173,6 @@ class Game {
 
     dropEnemy() {
         const enemy = new EnemySprite(this.enemyImage, 70 + Math.random() * (this.w - 140), 0, 28, 50);
-        enemy.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
         this.enemies.push(enemy);
         this.enemyDropCountDown = 60;
     }
@@ -197,7 +189,7 @@ class Game {
         }
 
         if (this.controller.isDown(Button.Space)) {
-            this.player.accelerateForJump();
+            this.player.jump();
         }
     }
 
@@ -315,6 +307,10 @@ class Controller {
     }
 }
 
+enum OverlapDirection {
+    Left, Right, Top, Bottom,
+}
+
 class Sprite {
     constructor(protected image: HTMLImageElement,
         protected x_: number, protected y_: number, 
@@ -330,11 +326,43 @@ class Sprite {
     protected set h(v: number) { this.h_ = v;}
     xywh() { return [this.x, this.y, this.w, this.h];}
 
+    get l() { return this.x_; }
+    protected set l(v: number) { this.x_ = v; }
+    get r() { return this.x_ + this.w_; }
+    protected set r(v: number) { this.x_ = v - this.w_; }
+    get t() { return this.y_ - this.h_; }
+    protected set t(v: number) { this.y_ = this.h_ + v;}
+    get b() { return this.y_; }
+    protected set b(v: number) { this.y_ = v; }
+
+    get cx() { return this.x_ + 0.5 * this.w_; }
+    get cy() { return this.y_ + 0.5 * this.h_; }
+
+    protected vx = 0;
+    protected vy = 0;
+
     overlaps(other: Sprite): boolean {
-        return this.x + this.w >= other.x &&
-            this.x <= other.x + other.w &&
-            this.y + this.h >= other.y &&
-            this.y <= other.y + other.h;
+        return this.r > other.l && this.l < other.r && this.b > other.t && this.t < other.b;
+    }
+
+    overlapDirectionWith(other: Sprite): OverlapDirection {
+        if (this.vx >= 0) {
+            if (this.vy >= 0) {
+                return this.vx == 0 || (this.vy / this.vx) > (this.b - other.t) / (this.r - other.l)
+                    ? OverlapDirection.Top : OverlapDirection.Left;
+            } else {
+                return this.vx == 0 || (this.vy / this.vx) < (this.t - other.b) / (this.r - other.l)
+                    ? OverlapDirection.Bottom : OverlapDirection.Left;
+            }
+        } else {
+            if (this.vy >= 0) {
+                return this.vx == 0 || (this.vy / this.vx) < (this.b - other.t) / (this.l - other.r)
+                    ? OverlapDirection.Top : OverlapDirection.Right;
+            } else {
+                return this.vx == 0 || (this.vy / this.vx) > (this.t - other.b) / (this.l - other.r)
+                    ? OverlapDirection.Bottom : OverlapDirection.Right;
+            }
+        }
     }
 
     draw(ctx: CanvasRenderingContext2D) {
@@ -343,11 +371,8 @@ class Sprite {
 }
 
 class MovingSprite extends Sprite {  
-    vx = 0;
-    protected vy = 0;
-
+    protected ground: ObstacleSprite|undefined;
     private ayFall = 1;
-    protected jumpFrames = 0;
 
     xmin = 0;
     xmax = 500;
@@ -366,7 +391,15 @@ class MovingSprite extends Sprite {
     update() {
         if (this.hidden) return;
 
-        this.vy += this.ayFall;
+        if (this.ground) {
+            this.y += 2;
+            if (!this.overlaps(this.ground)) {
+                this.launched();
+            }
+            this.y -= 2;
+        }
+        
+        if (!this.ground) this.vy += this.ayFall;
 
         this.x += this.vx;
         this.y += this.vy;
@@ -381,26 +414,38 @@ class MovingSprite extends Sprite {
         }
     }
 
+    landed(ground: ObstacleSprite) {
+        this.ground = ground;
+    }
+
+    launched() {
+        this.ground = undefined;
+    }
+
     updateForOverlaps(obstacles: ObstacleSprite[]) {
         if (this.hidden) return;
 
         for (const obstacle of obstacles) {
-            const [ox, oy, ow, oh] = obstacle.xywh();
-            
-            if (this.y - this.h <= oy && oy <= this.y &&
-                this.x + this.w >= ox && this.x <= ox + ow) {
-                if (this.vy < 0) {
-                    this.y = oy + this.h;
-                    this.vy = 0;
-                }
-            }
-
-            if (this.y - this.h <= oy - oh && oy - oh <= this.y &&
-                this.x + this.w >= ox && this.x <= ox + ow) {
-                if (this.vy > 0) {
-                    this.y = oy - oh;
-                    this.vy = 0;
-                    this.jumpFrames = 0;
+            if (this.overlaps(obstacle)) {
+                switch (this.overlapDirectionWith(obstacle)) {
+                    case OverlapDirection.Top:
+                        this.b = obstacle.t;
+                        this.vy = 0;
+                        this.landed(obstacle);
+                        break;
+                    case OverlapDirection.Bottom:
+                        this.t = obstacle.b;
+                        this.vy = 0;
+                        this.launched();
+                        break;
+                    case OverlapDirection.Left:
+                        this.r = obstacle.l;
+                        if (this.vx > 0) this.vx *= -1;
+                        break;
+                    case OverlapDirection.Right:
+                        this.l = obstacle.r;
+                        if (this.vx < 0) this.vx *= -1;
+                        break;
                 }
             }
         }
@@ -408,31 +453,35 @@ class MovingSprite extends Sprite {
 }
 
 class PlayerSprite extends MovingSprite {
-    private vxMax = 10;
-    private axUp = 0.8;
-    private axDown = 0.4;
+    private vxMax = 7;
+    private axAccel = 0.6;
+    private axAccelInAir = 0.2;
+    private axDecel = 0.4;
     
-    private ayJump = 3;
-    private vyJumpMax = 20;
-    private maxJumpFrames = 8;
+    private ayJump = 10;
+    private vyJumpMax = 17;
+    private canJump = true;
 
     respawn(x: number, y: number) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
+        this.canJump = true;
         this.hidden = false;
     }
 
     accelerateX(direction: 1|-1) {
         if (this.hidden) return;
-        this.vx += this.axUp * direction;
+        const ax = this.ground ? this.axAccel : this.axAccelInAir;
+        this.vx += ax * direction;
         this.vx = clampAbs(this.vx, this.vxMax);
     }
 
     decelerateX() {
         if (this.hidden) return;
-        const newVX = this.vx - Math.sign(this.vx) * this.axDown;
+        if (!this.ground) return;
+        const newVX = this.vx - Math.sign(this.vx) * this.axDecel;
         if (Math.sign(newVX) != Math.sign(this.vx)) {
             this.vx = 0;
         } else {
@@ -440,14 +489,27 @@ class PlayerSprite extends MovingSprite {
         }
     }
 
-    accelerateForJump() {
+    jump() {
         if (this.hidden) return;
-        if (this.jumpFrames < this.maxJumpFrames) {
-            this.vy -= this.ayJump;
-            this.vy = Math.max(this.vy, -this.vyJumpMax);
-            this.jumpFrames++;
+        if (!this.canJump) return;
+        this.vy -= this.ayJump;
+        if (this.vy <= -this.vyJumpMax) {
+            this.vy = -this.vyJumpMax;
+            this.canJump = false;
+            this.launched();
+            return;
         }
-    }    
+    }
+
+    launched() {
+        super.launched()
+        this.canJump = false;
+    }
+
+    landed(ground: ObstacleSprite) {
+        super.landed(ground);
+        this.canJump = true;
+    }
 
     draw(ctx: CanvasRenderingContext2D) {
         if (this.hidden) return;
@@ -456,6 +518,10 @@ class PlayerSprite extends MovingSprite {
 }
 
 class EnemySprite extends MovingSprite {
+    constructor(image: HTMLImageElement, x: number, y: number,  w: number, h: number) {
+        super(image, x, y, w, h);
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
+    }
 }
 
 class TrophySprite extends Sprite {
