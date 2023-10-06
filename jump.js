@@ -1,6 +1,4 @@
 // Stuff to do:
-// - Platform stretching
-// - Transparent background on skeletons
 // - Additional skeleton on scoring
 // - Jump speed and height
 // - Running speed
