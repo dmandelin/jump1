@@ -1,12 +1,12 @@
-// Stuff to do:
-// - Face bunny in direction of motion
-// - Animate bunny feet
-// - Consider reducing jump latency
 // Refactorings:
 // - Better hiding of player
 
 const Images = {
     player: img('bunny.png'),
+    playerR1: img('bunny-right-1.png'),
+    playerR2: img('bunny-right-2.png'),
+    playerL1: img('bunny-left-1.png'),
+    playerL2: img('bunny-left-2.png'),
     playerStone: img('stonebunny.png'),
     skeleton: img('skeleton.png'),
     goal: img('trophy.png'),
@@ -56,7 +56,7 @@ class Game {
         
         this.ctx = canvas.getContext("2d")!;
 
-        this.player = new PlayerSprite(Images.player, 180, this.h - 200, 31, 50);
+        this.player = new PlayerSprite(180, this.h - 200, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
 
@@ -488,6 +488,31 @@ class PlayerSprite extends MovingSprite {
     protected ayJump = 5;
     protected vyJumpMax = 17;
     readonly jumpChargeMax = 8;
+
+    protected animationImagesL = [Images.playerL1, Images.playerL2];
+    protected animationImagesR = [Images.playerR1, Images.playerR2];
+    protected animationFrame = 0;
+    protected animationSubFrame = 0;
+    protected readonly subFramesPerFrame = 5;
+
+    constructor(x: number, y: number,  w: number, h: number) {
+        super(Images.playerR1, x, y, w, h);
+        this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
+    }
+
+    update() {
+        super.update();
+        
+        if (this.vx == 0) return;
+
+        const images = this.vx < 0 ? this.animationImagesL : this.animationImagesR;
+        if (++this.animationSubFrame == this.subFramesPerFrame) {
+            this.animationSubFrame = 0;
+            if (++this.animationFrame == images.length) this.animationFrame = 0;
+        }
+
+        this.image =images[this.animationFrame];
+    }
 
     respawn(x: number, y: number) {
         this.x = x;
