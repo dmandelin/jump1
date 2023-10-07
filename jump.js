@@ -1,6 +1,4 @@
 // Basic features to add:
-// - Better start location
-// - Give skeletons the ability to hang out on a platform instead of walking off
 // - Stone bunny crumbles after a while
 // - Skeletons don't slow down on wall collision
 // - More platforms and things
@@ -79,7 +77,7 @@ class Game {
             new ObstacleSprite(Images.wall, this.w * 1.3, this.h - tierHeight * 3, this.w * 0.5, 20),
         ];
         this.trophy = new TrophySprite(Images.goal, this.w * 2 - 100, 100, 32, 32);
-        this.player = new PlayerSprite(10, 0.4 * this.h - 50, 31, 50);
+        this.player = new PlayerSprite(10, 0.36 * this.h - 50, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
         document.addEventListener('keydown', (event) => {
@@ -126,7 +124,14 @@ class Game {
         this.updateForController();
         this.updateDrops();
         this.player.update();
+        const heldGround = new Set();
         for (const e of this.enemies) {
+            if (e.holdGround) {
+                if (heldGround.has(e.ground)) {
+                    e.holdGround = false;
+                }
+                heldGround.add(e.ground);
+            }
             e.update();
         }
         this.player.updateForOverlaps(this.obstacles);
@@ -314,14 +319,12 @@ var OverlapDirection;
     OverlapDirection[OverlapDirection["Top"] = 2] = "Top";
     OverlapDirection[OverlapDirection["Bottom"] = 3] = "Bottom";
 })(OverlapDirection || (OverlapDirection = {}));
-class Sprite {
-    image;
+class Ghost {
     x_;
     y_;
     w_;
     h_;
-    constructor(image, x_, y_, w_, h_) {
-        this.image = image;
+    constructor(x_, y_, w_, h_) {
         this.x_ = x_;
         this.y_ = y_;
         this.w_ = w_;
@@ -346,11 +349,18 @@ class Sprite {
     set b(v) { this.y_ = v; }
     get cx() { return this.x_ + 0.5 * this.w_; }
     get cy() { return this.y_ + 0.5 * this.h_; }
-    vx = 0;
-    vy = 0;
     overlaps(other) {
         return this.r > other.l && this.l < other.r && this.b > other.t && this.t < other.b;
     }
+}
+class Sprite extends Ghost {
+    image;
+    constructor(image, x, y, w, h) {
+        super(x, y, w, h);
+        this.image = image;
+    }
+    vx = 0;
+    vy = 0;
     overlapDirectionWith(other) {
         if (this.vx >= 0) {
             if (this.vy >= 0) {
@@ -378,7 +388,7 @@ class Sprite {
     }
 }
 class MovingSprite extends Sprite {
-    ground;
+    ground_;
     ayFall = 1;
     xmin = 0;
     xmax = 500;
@@ -386,6 +396,8 @@ class MovingSprite extends Sprite {
     hide() {
         this.hidden = true;
     }
+    get ground() { return this.ground_; }
+    set ground(v) { this.ground_ = v; }
     get grounded() { return !!this.ground; }
     move(x, y) {
         this.x += x;
@@ -407,11 +419,11 @@ class MovingSprite extends Sprite {
         this.y += this.vy;
         if (this.x < this.xmin) {
             this.x = this.xmin;
-            this.vx = -0.8 * this.vx;
+            this.vx = -1 * this.vx;
         }
         if (this.x > this.xmax) {
             this.x = this.xmax;
-            this.vx = -0.8 * this.vx;
+            this.vx = -1 * this.vx;
         }
     }
     landed(ground) {
@@ -526,9 +538,23 @@ class PlayerSprite extends MovingSprite {
     }
 }
 class EnemySprite extends MovingSprite {
+    holdGround = true;
     constructor(image, x, y, w, h) {
         super(image, x, y, w, h);
         this.vx = (Math.random() < 0.5 ? -1 : 1) * 2;
+    }
+    update() {
+        if (this.holdGround) {
+            this.turnIfNearEdge();
+        }
+        super.update();
+    }
+    turnIfNearEdge() {
+        if (!this.ground)
+            return;
+        if (!this.ground.overlaps(new Ghost(this.x + this.vx * 15, this.y + 2, this.w, this.h))) {
+            this.vx *= -1;
+        }
     }
 }
 class TrophySprite extends Sprite {
