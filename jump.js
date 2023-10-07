@@ -1,4 +1,3 @@
-// Basic features to add:
 // - Stone bunny crumbles after a while
 // - Skeletons don't slow down on wall collision
 // - More platforms and things
@@ -65,7 +64,7 @@ class Game {
             // Bottom
             new ObstacleSprite(Images.wall, 0, this.h + 1, this.w * 2, 1),
             // Left
-            new ObstacleSprite(Images.wall, -200, this.h, 200, this.h),
+            new ObstacleSprite(Images.wall, -300, this.h, 300, this.h),
             // Right
             new ObstacleSprite(Images.wall, this.w * 2, this.h, 300, this.h),
             // Platforms
@@ -80,6 +79,7 @@ class Game {
         this.player = new PlayerSprite(10, 0.36 * this.h - 50, 31, 50);
         this.player.xmin = 0;
         this.player.xmax = this.w * 2 - 50;
+        this.scrollForPlayer();
         document.addEventListener('keydown', (event) => {
             if (event.key === 'm') {
                 this.metersOn = !this.metersOn;
@@ -209,16 +209,17 @@ class Game {
             this.jumpHeld = false;
         }
     }
+    scrollLead = 300;
     scrollForPlayer() {
         const xPlayerOnView = this.player.x - this.xView;
-        const xShiftNeeded = xPlayerOnView < 150 ?
-            xPlayerOnView - 150 : (xPlayerOnView > this.w - 300 ?
-            xPlayerOnView - (this.w - 300) :
+        const xShiftNeeded = xPlayerOnView < this.scrollLead ?
+            this.scrollLead - xPlayerOnView : (xPlayerOnView > this.w - this.scrollLead ?
+            (this.w - this.scrollLead) - xPlayerOnView :
             0);
         if (!xShiftNeeded)
             return;
-        this.ctx.translate(-xShiftNeeded, 0);
-        this.xView += xShiftNeeded;
+        this.ctx.translate(xShiftNeeded, 0);
+        this.xView -= xShiftNeeded;
     }
     draw() {
         this.drawBackground();
@@ -359,8 +360,12 @@ class Sprite extends Ghost {
         super(x, y, w, h);
         this.image = image;
     }
-    vx = 0;
-    vy = 0;
+    vx_ = 0;
+    vy_ = 0;
+    get vx() { return this.vx_; }
+    set vx(v) { this.vx_ = v; }
+    get vy() { return this.vy_; }
+    set vy(v) { this.vy_ = v; }
     overlapDirectionWith(other) {
         if (this.vx >= 0) {
             if (this.vy >= 0) {
